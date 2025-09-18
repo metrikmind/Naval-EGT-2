@@ -1,6 +1,6 @@
 <?php
 /**
- * Classe per la gestione del frontend pubblico - Versione con sessioni corrette
+ * Classe per la gestione del frontend pubblico - VERSIONE CORRETTA
  */
 
 if (!defined('ABSPATH')) {
@@ -23,16 +23,18 @@ class Naval_EGT_Public {
         // Avvia sessione solo se necessario e possibile
         add_action('init', array($this, 'maybe_start_session'), 1);
         
+        // Handlers AJAX per login/registrazione
         add_action('wp_ajax_naval_egt_login', array($this, 'handle_login'));
         add_action('wp_ajax_nopriv_naval_egt_login', array($this, 'handle_login'));
         add_action('wp_ajax_naval_egt_register', array($this, 'handle_registration'));
         add_action('wp_ajax_nopriv_naval_egt_register', array($this, 'handle_registration'));
         add_action('wp_ajax_naval_egt_logout', array($this, 'handle_logout'));
-        add_action('wp_ajax_nopriv_naval_egt_logout', array($this, 'handle_logout'));
+        
+        // Handlers per utenti autenticati
         add_action('wp_ajax_naval_egt_get_user_files', array($this, 'get_user_files'));
         add_action('wp_ajax_naval_egt_get_user_activity', array($this, 'get_user_activity'));
+        add_action('wp_ajax_naval_egt_get_user_stats', array($this, 'get_user_stats'));
         add_action('wp_ajax_naval_egt_upload_file', array($this, 'upload_user_file'));
-        add_action('wp_ajax_naval_egt_download_file', array($this, 'download_user_file'));
         add_action('wp_ajax_naval_egt_delete_file', array($this, 'delete_user_file'));
     }
     
@@ -40,40 +42,14 @@ class Naval_EGT_Public {
      * Avvia sessione solo se necessario e sicuro
      */
     public function maybe_start_session() {
-        // Non avviare sessione se:
-        // - Già avviata
-        // - Siamo in admin
-        // - Headers già inviati
-        // - Non è necessaria (nessun utente naval egt)
-        
-        if (self::$session_started) {
+        if (self::$session_started || is_admin() || headers_sent()) {
             return;
         }
         
-        if (is_admin()) {
-            return;
-        }
-        
-        if (headers_sent()) {
-            error_log('Naval EGT: Cannot start session - headers already sent');
-            return;
-        }
-        
-        // Avvia sessione solo se abbiamo un ID sessione o se è necessario
-        if (!session_id() && $this->should_start_session()) {
+        if ($this->should_start_session()) {
             if (@session_start()) {
                 self::$session_started = true;
-                error_log('Naval EGT: Session started successfully');
-            } else {
-                error_log('Naval EGT: Failed to start session');
             }
-        } elseif (session_id()) {
-            self::$session_started = true;
-        }
-        
-        // Check remember cookie dopo l'avvio sessione
-        if (self::$session_started) {
-            $this->check_remember_cookie();
         }
     }
     
@@ -81,30 +57,19 @@ class Naval_EGT_Public {
      * Determina se è necessario avviare una sessione
      */
     private function should_start_session() {
-        // Avvia sessione se:
-        // - C'è un cookie "ricordami"
-        // - Siamo su una pagina con shortcode naval egt
-        // - C'è una richiesta AJAX naval egt
-        
         global $post;
         
-        if (isset($_COOKIE['naval_egt_remember'])) {
+        // Avvia sessione se siamo su una pagina con shortcode naval egt
+        if ($post && has_shortcode($post->post_content, 'naval_egt_area_riservata')) {
             return true;
         }
         
+        // Avvia sessione per AJAX naval egt
         if (defined('DOING_AJAX') && DOING_AJAX) {
             $action = $_REQUEST['action'] ?? '';
             if (strpos($action, 'naval_egt_') === 0) {
                 return true;
             }
-        }
-        
-        if ($post && has_shortcode($post->post_content, 'naval_egt_area_riservata')) {
-            return true;
-        }
-        
-        if ($post && has_shortcode($post->post_content, 'naval_egt_login_form')) {
-            return true;
         }
         
         return false;
@@ -123,13 +88,12 @@ class Naval_EGT_Public {
     }
     
     /**
-     * Gestisce il login utente
+     * Gestisce il login utente - VERSIONE CORRETTA
      */
-    public static function handle_login() {
+    public function handle_login() {
         check_ajax_referer('naval_egt_nonce', 'nonce');
         
-        $instance = self::get_instance();
-        $instance->ensure_session();
+        $this->ensure_session();
         
         $login = sanitize_text_field($_POST['login'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -142,22 +106,11 @@ class Naval_EGT_Public {
         $result = Naval_EGT_User_Manager::authenticate($login, $password);
         
         if ($result['success']) {
-            // Se "ricordami" è selezionato, imposta cookie di lunga durata
+            // Se "ricordami" è selezionato, imposta cookie
             if ($remember) {
-                $cookie_expiry = time() + (30 * DAY_IN_SECONDS); // 30 giorni
+                $cookie_expiry = time() + (30 * DAY_IN_SECONDS);
                 setcookie('naval_egt_remember', base64_encode($login), $cookie_expiry, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
             }
-            
-            // Log dell'accesso
-            Naval_EGT_Activity_Logger::log_activity(
-                $result['user']['id'],
-                $result['user']['user_code'],
-                'LOGIN',
-                null,
-                null,
-                0,
-                array('remember' => $remember ? 'yes' : 'no')
-            );
             
             wp_send_json_success(array(
                 'message' => 'Login effettuato con successo',
@@ -174,9 +127,9 @@ class Naval_EGT_Public {
     }
     
     /**
-     * Gestisce la registrazione utente
+     * Gestisce la registrazione utente - VERSIONE CORRETTA
      */
-    public static function handle_registration() {
+    public function handle_registration() {
         check_ajax_referer('naval_egt_nonce', 'nonce');
         
         // Verifica se la registrazione è abilitata
@@ -207,61 +160,16 @@ class Naval_EGT_Public {
             wp_send_json_error('È necessario accettare la Privacy Policy');
         }
         
-        if (!empty($data['ragione_sociale']) && empty($data['partita_iva'])) {
-            wp_send_json_error('La Partita IVA è obbligatoria se si specifica la Ragione Sociale');
-        }
-        
-        // Validazione email
-        if (!is_email($data['email'])) {
-            wp_send_json_error('Formato email non valido');
-        }
-        
-        // Validazione password
-        if (strlen($data['password']) < 6) {
-            wp_send_json_error('La password deve essere di almeno 6 caratteri');
-        }
+        // Rimuovi conferma password dai dati da salvare
+        unset($data['password_confirm']);
+        unset($data['privacy_policy']);
         
         // Crea l'utente
         $result = Naval_EGT_User_Manager::create_user($data);
         
         if ($result['success']) {
-            // Log registrazione
-            Naval_EGT_Activity_Logger::log_activity(
-                $result['user_id'],
-                $result['user_code'],
-                'REGISTRATION',
-                null,
-                null,
-                0,
-                array('email' => $data['email'], 'ragione_sociale' => $data['ragione_sociale'])
-            );
-            
-            // Invio email di conferma all'admin se configurato
-            $email_enabled = Naval_EGT_Database::get_setting('email_notifications', '1');
-            if ($email_enabled === '1') {
-                $admin_email = get_option('admin_email');
-                $subject = 'Nuova richiesta di registrazione - Naval EGT';
-                $message = sprintf(
-                    "Nuova richiesta di registrazione ricevuta:\n\n" .
-                    "Nome: %s %s\n" .
-                    "Email: %s\n" .
-                    "Username: %s\n" .
-                    "Codice Utente: %s\n" .
-                    "Azienda: %s\n" .
-                    "Telefono: %s\n\n" .
-                    "Vai su %s per attivare l'utente.",
-                    $data['nome'],
-                    $data['cognome'],
-                    $data['email'],
-                    $data['username'],
-                    $result['user_code'],
-                    $data['ragione_sociale'] ?: 'Non specificata',
-                    $data['telefono'] ?: 'Non specificato',
-                    admin_url('admin.php?page=naval-egt&tab=users')
-                );
-                
-                wp_mail($admin_email, $subject, $message);
-            }
+            // Invio email all'admin
+            $this->send_admin_registration_notification($data, $result['user_code']);
             
             wp_send_json_success(array(
                 'message' => 'Richiesta di registrazione inviata con successo! Il tuo account sarà attivato manualmente dal nostro staff. Riceverai una email di conferma.',
@@ -273,22 +181,44 @@ class Naval_EGT_Public {
     }
     
     /**
+     * Invia notifica admin per registrazione
+     */
+    private function send_admin_registration_notification($user_data, $user_code) {
+        $email_enabled = Naval_EGT_Database::get_setting('email_notifications', '1');
+        if ($email_enabled !== '1') {
+            return;
+        }
+        
+        $admin_email = get_option('admin_email');
+        $subject = 'Nuova registrazione utente - Naval EGT';
+        
+        $message = sprintf(
+            "Nuova richiesta di registrazione ricevuta:\n\n" .
+            "Nome: %s %s\n" .
+            "Email: %s\n" .
+            "Username: %s\n" .
+            "Codice Utente: %s\n" .
+            "Azienda: %s\n" .
+            "Telefono: %s\n\n" .
+            "Vai su %s per attivare l'utente.",
+            $user_data['nome'],
+            $user_data['cognome'],
+            $user_data['email'],
+            $user_data['username'],
+            $user_code,
+            $user_data['ragione_sociale'] ?: 'Non specificata',
+            $user_data['telefono'] ?: 'Non specificato',
+            admin_url('admin.php?page=naval-egt&tab=users')
+        );
+        
+        wp_mail($admin_email, $subject, $message);
+    }
+    
+    /**
      * Gestisce il logout utente
      */
-    public static function handle_logout() {
+    public function handle_logout() {
         $current_user = Naval_EGT_User_Manager::get_current_user();
-        
-        if ($current_user) {
-            // Log logout
-            Naval_EGT_Activity_Logger::log_activity(
-                $current_user['id'],
-                $current_user['user_code'],
-                'LOGOUT',
-                null,
-                null,
-                0
-            );
-        }
         
         Naval_EGT_User_Manager::logout();
         
@@ -311,25 +241,42 @@ class Naval_EGT_Public {
             wp_send_json_error('Accesso richiesto');
         }
         
+        global $wpdb;
+        $table_files = $wpdb->prefix . 'naval_egt_files';
+        
         $page = intval($_POST['page'] ?? 1);
+        $per_page = 20;
+        $offset = ($page - 1) * $per_page;
         $search = sanitize_text_field($_POST['search'] ?? '');
         
-        $files = Naval_EGT_File_Manager::get_user_files($current_user['id'], array(
-            'page' => $page,
-            'per_page' => 20,
-            'search' => $search
+        $where_clause = "user_id = %d";
+        $params = array($current_user['id']);
+        
+        if (!empty($search)) {
+            $where_clause .= " AND file_name LIKE %s";
+            $params[] = '%' . $wpdb->esc_like($search) . '%';
+        }
+        
+        $files = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_files WHERE $where_clause ORDER BY created_at DESC LIMIT %d OFFSET %d",
+            array_merge($params, array($per_page, $offset))
+        ), ARRAY_A);
+        
+        $total = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_files WHERE $where_clause",
+            $params
         ));
         
         // Formatta i file per il frontend
         $formatted_files = array();
-        foreach ($files['files'] as $file) {
+        foreach ($files as $file) {
             $formatted_files[] = array(
                 'id' => $file['id'],
                 'name' => $file['file_name'],
                 'size' => size_format($file['file_size']),
                 'date' => mysql2date('d/m/Y H:i', $file['created_at']),
                 'download_url' => add_query_arg(array(
-                    'action' => 'naval_egt_download',
+                    'action' => 'naval_egt_download_file',
                     'file_id' => $file['id'],
                     'nonce' => wp_create_nonce('download_file_' . $file['id'])
                 ), admin_url('admin-ajax.php'))
@@ -338,8 +285,12 @@ class Naval_EGT_Public {
         
         wp_send_json_success(array(
             'files' => $formatted_files,
-            'total' => $files['total'],
-            'pagination' => $files['pagination']
+            'total' => (int)$total,
+            'pagination' => array(
+                'page' => $page,
+                'per_page' => $per_page,
+                'total_pages' => ceil($total / $per_page)
+            )
         ));
     }
     
@@ -383,6 +334,33 @@ class Naval_EGT_Public {
     }
     
     /**
+     * Ottiene statistiche utente
+     */
+    public function get_user_stats() {
+        check_ajax_referer('naval_egt_nonce', 'nonce');
+        
+        $current_user = Naval_EGT_User_Manager::get_current_user();
+        if (!$current_user) {
+            wp_send_json_error('Accesso richiesto');
+        }
+        
+        global $wpdb;
+        $table_files = $wpdb->prefix . 'naval_egt_files';
+        
+        $stats = $wpdb->get_row($wpdb->prepare(
+            "SELECT 
+                COUNT(*) as total_files,
+                COALESCE(SUM(file_size), 0) as total_size,
+                MAX(created_at) as last_upload
+             FROM $table_files 
+             WHERE user_id = %d",
+            $current_user['id']
+        ), ARRAY_A);
+        
+        wp_send_json_success($stats);
+    }
+    
+    /**
      * Upload file per utente corrente
      */
     public function upload_user_file() {
@@ -409,12 +387,6 @@ class Naval_EGT_Public {
         $files = $_FILES['files'];
         $file_count = count($files['name']);
         
-        // Verifica Dropbox
-        $dropbox = Naval_EGT_Dropbox::get_instance();
-        if (!$dropbox->is_configured()) {
-            wp_send_json_error('Servizio di archiviazione non disponibile. Contatta l\'amministratore.');
-        }
-        
         for ($i = 0; $i < $file_count; $i++) {
             if ($files['error'][$i] !== UPLOAD_ERR_OK) {
                 $errors[] = "Errore nel file {$files['name'][$i]}";
@@ -434,7 +406,7 @@ class Naval_EGT_Public {
             }
             
             // Controlla dimensione
-            $max_size = intval(Naval_EGT_Database::get_setting('max_file_size', '20971520'));
+            $max_size = intval(Naval_EGT_Database::get_setting('max_file_size', '20971520')); // 20MB
             if ($file_size > $max_size) {
                 $errors[] = "File troppo grande: {$file_name} (" . size_format($file_size) . ")";
                 continue;
@@ -448,7 +420,7 @@ class Naval_EGT_Public {
                 'size' => $file_size
             );
             
-            // Upload tramite File Manager
+            // Upload singolo file
             $upload_result = $this->process_single_file_upload($file, $current_user);
             
             if ($upload_result['success']) {
@@ -475,116 +447,19 @@ class Naval_EGT_Public {
     }
     
     /**
-     * Download file utente
-     */
-    public function download_user_file() {
-        $file_id = intval($_GET['file_id'] ?? 0);
-        $nonce = $_GET['nonce'] ?? '';
-        
-        if (!wp_verify_nonce($nonce, 'download_file_' . $file_id)) {
-            wp_die('Token di sicurezza non valido');
-        }
-        
-        $current_user = Naval_EGT_User_Manager::get_current_user();
-        if (!$current_user) {
-            wp_die('Accesso richiesto');
-        }
-        
-        // Verifica proprietà del file
-        global $wpdb;
-        $file = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}naval_egt_files WHERE id = %d AND user_id = %d",
-            $file_id, $current_user['id']
-        ), ARRAY_A);
-        
-        if (!$file) {
-            wp_die('File non trovato o non autorizzato');
-        }
-        
-        // Download da Dropbox
-        $dropbox = Naval_EGT_Dropbox::get_instance();
-        $download_result = $dropbox->download_file($file['dropbox_path']);
-        
-        if (!$download_result['success']) {
-            wp_die('Errore nel download: ' . $download_result['message']);
-        }
-        
-        // Log download
-        Naval_EGT_Activity_Logger::log_activity(
-            $current_user['id'],
-            $current_user['user_code'],
-            'DOWNLOAD',
-            $file['file_name'],
-            $file['dropbox_path'],
-            $file['file_size']
-        );
-        
-        // Invia file al browser
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . $file['file_name'] . '"');
-        header('Content-Length: ' . $file['file_size']);
-        header('Cache-Control: no-cache, must-revalidate');
-        header('Pragma: no-cache');
-        
-        echo $download_result['content'];
-        exit;
-    }
-    
-    /**
-     * Elimina file utente
-     */
-    public function delete_user_file() {
-        check_ajax_referer('naval_egt_nonce', 'nonce');
-        
-        $current_user = Naval_EGT_User_Manager::get_current_user();
-        if (!$current_user) {
-            wp_send_json_error('Accesso richiesto');
-        }
-        
-        $file_id = intval($_POST['file_id'] ?? 0);
-        
-        if (!$file_id) {
-            wp_send_json_error('ID file non valido');
-        }
-        
-        // Verifica proprietà del file
-        global $wpdb;
-        $file = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->prefix}naval_egt_files WHERE id = %d AND user_id = %d",
-            $file_id, $current_user['id']
-        ), ARRAY_A);
-        
-        if (!$file) {
-            wp_send_json_error('File non trovato o non autorizzato');
-        }
-        
-        // Elimina da Dropbox (opzionale - potrebbe essere solo nascosto nel DB)
-        $dropbox = Naval_EGT_Dropbox::get_instance();
-        if ($dropbox->is_configured()) {
-            $dropbox->delete($file['dropbox_path']);
-        }
-        
-        // Elimina dal database
-        $wpdb->delete($wpdb->prefix . 'naval_egt_files', array('id' => $file_id), array('%d'));
-        
-        // Log eliminazione
-        Naval_EGT_Activity_Logger::log_activity(
-            $current_user['id'],
-            $current_user['user_code'],
-            'DELETE',
-            $file['file_name'],
-            $file['dropbox_path'],
-            $file['file_size']
-        );
-        
-        wp_send_json_success('File eliminato con successo');
-    }
-    
-    /**
      * Processa upload di un singolo file
      */
     private function process_single_file_upload($file, $user) {
+        // Verifica che Dropbox sia configurato
+        if (!class_exists('Naval_EGT_Dropbox')) {
+            return array('success' => false, 'message' => 'Sistema archiviazione non disponibile');
+        }
+        
         $dropbox = Naval_EGT_Dropbox::get_instance();
+        
+        if (!$dropbox->is_configured()) {
+            return array('success' => false, 'message' => 'Sistema archiviazione non configurato');
+        }
         
         // Cerca cartella utente
         $folder_result = $dropbox->find_folder_by_code($user['user_code']);
@@ -605,7 +480,7 @@ class Naval_EGT_Public {
         if (!$upload_result['success']) {
             return array(
                 'success' => false,
-                'message' => 'Errore upload Dropbox: ' . $upload_result['message']
+                'message' => 'Errore upload: ' . $upload_result['message']
             );
         }
         
@@ -645,104 +520,47 @@ class Naval_EGT_Public {
     }
     
     /**
-     * Verifica se l'utente ha un cookie "ricordami" valido - VERSIONE CORRETTA
+     * Elimina file utente
      */
-    public function check_remember_cookie() {
-        if (!isset($_COOKIE['naval_egt_remember']) || Naval_EGT_User_Manager::is_logged_in()) {
-            return;
+    public function delete_user_file() {
+        check_ajax_referer('naval_egt_nonce', 'nonce');
+        
+        $current_user = Naval_EGT_User_Manager::get_current_user();
+        if (!$current_user) {
+            wp_send_json_error('Accesso richiesto');
         }
         
-        $login_credential = base64_decode($_COOKIE['naval_egt_remember']);
-        if (!$login_credential) {
-            return;
+        $file_id = intval($_POST['file_id'] ?? 0);
+        
+        if (!$file_id) {
+            wp_send_json_error('ID file non valido');
         }
         
-        $user = filter_var($login_credential, FILTER_VALIDATE_EMAIL) 
-            ? Naval_EGT_User_Manager::get_user_by_email($login_credential)
-            : Naval_EGT_User_Manager::get_user_by_username($login_credential);
+        // Verifica proprietà del file
+        global $wpdb;
+        $file = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}naval_egt_files WHERE id = %d AND user_id = %d",
+            $file_id, $current_user['id']
+        ), ARRAY_A);
         
-        if ($user && $user['status'] === 'ATTIVO') {
-            // Assicurati che la sessione sia disponibile
-            if ($this->ensure_session()) {
-                $_SESSION['naval_egt_user'] = $user;
-                
-                // Log accesso automatico
-                Naval_EGT_Activity_Logger::log_activity(
-                    $user['id'], 
-                    $user['user_code'], 
-                    'LOGIN',
-                    null,
-                    null,
-                    0,
-                    array('auto_login' => 'remember_me')
-                );
-            }
+        if (!$file) {
+            wp_send_json_error('File non trovato o non autorizzato');
         }
-    }
-    
-    /**
-     * Ottiene informazioni pubbliche per shortcode
-     */
-    public static function get_public_info() {
-        $stats = Naval_EGT_Database::get_user_stats();
         
-        return array(
-            'registration_enabled' => Naval_EGT_Database::get_setting('user_registration_enabled', '1') === '1',
-            'total_users' => $stats['total_users'] ?? 0,
-            'support_email' => 'tecnica@naval.it'
+        // Elimina dal database
+        $wpdb->delete($wpdb->prefix . 'naval_egt_files', array('id' => $file_id), array('%d'));
+        
+        // Log eliminazione
+        Naval_EGT_Activity_Logger::log_activity(
+            $current_user['id'],
+            $current_user['user_code'],
+            'DELETE',
+            $file['file_name'],
+            $file['dropbox_path'],
+            $file['file_size']
         );
-    }
-    
-    /**
-     * Shortcode per form di login personalizzato - VERSIONE CORRETTA
-     */
-    public static function login_form_shortcode($atts) {
-        $atts = shortcode_atts(array(
-            'redirect' => '',
-            'show_register_link' => 'true'
-        ), $atts, 'naval_egt_login_form');
         
-        if (Naval_EGT_User_Manager::is_logged_in()) {
-            return '<p>Sei già connesso. <a href="?logout=1">Logout</a></p>';
-        }
-        
-        ob_start();
-        echo '<div class="naval-egt-login-form">';
-        echo '<form method="post" class="login-form">';
-        wp_nonce_field('naval_egt_nonce', 'nonce');
-        echo '<input type="hidden" name="naval_action" value="login">';
-        
-        if ($atts['redirect']) {
-            echo '<input type="hidden" name="redirect_to" value="' . esc_attr($atts['redirect']) . '">';
-        }
-        
-        echo '<div class="form-group">';
-        echo '<label for="user_login">Email o Username</label>';
-        echo '<input type="text" id="user_login" name="login" required>';
-        echo '</div>';
-        
-        echo '<div class="form-group">';
-        echo '<label for="user_password">Password</label>';
-        echo '<input type="password" id="user_password" name="password" required>';
-        echo '</div>';
-        
-        echo '<div class="form-group checkbox-group">';
-        echo '<label>';
-        echo '<input type="checkbox" name="remember" value="1">';
-        echo 'Ricordami';
-        echo '</label>';
-        echo '</div>';
-        
-        echo '<button type="submit" class="btn-primary">Accedi</button>';
-        
-        if ($atts['show_register_link'] === 'true') {
-            echo '<p><a href="?register=1">Non hai un account? Richiedi registrazione</a></p>';
-        }
-        
-        echo '</form>';
-        echo '</div>';
-        
-        return ob_get_clean();
+        wp_send_json_success('File eliminato con successo');
     }
     
     /**
@@ -773,10 +591,6 @@ class Naval_EGT_Public {
             case 'DELETE':
                 return 'Eliminato: ' . ($activity['file_name'] ?? 'file sconosciuto');
             case 'LOGIN':
-                $details = json_decode($activity['details'] ?? '{}', true);
-                if (isset($details['auto_login'])) {
-                    return 'Accesso automatico (ricordami)';
-                }
                 return 'Accesso effettuato';
             case 'LOGOUT':
                 return 'Disconnessione effettuata';
@@ -788,33 +602,26 @@ class Naval_EGT_Public {
     }
     
     /**
-     * Inizializzazione del frontend - VERSIONE CORRETTA
+     * Ottiene informazioni pubbliche per shortcode
+     */
+    public static function get_public_info() {
+        return array(
+            'registration_enabled' => Naval_EGT_Database::get_setting('user_registration_enabled', '1') === '1',
+            'support_email' => 'tecnica@naval.it'
+        );
+    }
+    
+    /**
+     * Inizializzazione del frontend
      */
     public static function init() {
         $instance = self::get_instance();
         
-        // Registra shortcode aggiuntivi
-        add_shortcode('naval_egt_login_form', array(__CLASS__, 'login_form_shortcode'));
-        
         // Handle logout via GET parameter
         if (isset($_GET['logout']) && $_GET['logout'] == '1') {
-            $current_user = Naval_EGT_User_Manager::get_current_user();
-            if ($current_user) {
-                Naval_EGT_Activity_Logger::log_activity(
-                    $current_user['id'],
-                    $current_user['user_code'],
-                    'LOGOUT'
-                );
-            }
-            
             Naval_EGT_User_Manager::logout();
             wp_redirect(remove_query_arg('logout'));
             exit;
-        }
-        
-        // Gestione download diretto
-        if (isset($_GET['action']) && $_GET['action'] === 'naval_egt_download') {
-            $instance->download_user_file();
         }
     }
 }

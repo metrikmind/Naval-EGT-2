@@ -1592,7 +1592,7 @@ $public_info = Naval_EGT_Public::get_public_info();
 </style>
 
 <script>
-// JavaScript per l'Area Riservata
+// JavaScript per l'Area Riservata - VERSIONE CORRETTA
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('naval-egt-area-riservata');
     if (!container) return;
@@ -1601,6 +1601,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let currentActivityPage = 1;
     let isLoggedIn = <?php echo $is_logged_in ? 'true' : 'false'; ?>;
+    
+    // Definisci navalEgtAjax se non esiste
+    if (typeof navalEgtAjax === 'undefined') {
+        window.navalEgtAjax = {
+            ajax_url: '<?php echo admin_url("admin-ajax.php"); ?>',
+            nonce: '<?php echo wp_create_nonce("naval_egt_nonce"); ?>'
+        };
+    }
     
     // Inizializzazione
     if (isLoggedIn) {
@@ -1656,6 +1664,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const registerForm = document.getElementById('naval-register-form');
         if (registerForm) {
             registerForm.addEventListener('submit', handleRegister);
+        }
+        
+        // Validazione password in tempo reale
+        const passwordConfirm = document.getElementById('reg-password-confirm');
+        if (passwordConfirm) {
+            passwordConfirm.addEventListener('input', validatePasswordMatch);
+        }
+    }
+    
+    function validatePasswordMatch() {
+        const password = document.getElementById('reg-password').value;
+        const passwordConfirm = document.getElementById('reg-password-confirm').value;
+        
+        if (passwordConfirm && password !== passwordConfirm) {
+            document.getElementById('reg-password-confirm').style.borderColor = '#dc3545';
+            showToast('Le password non corrispondono', 'warning');
+        } else {
+            document.getElementById('reg-password-confirm').style.borderColor = '#28a745';
         }
     }
     
@@ -1729,6 +1755,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (ragioneSociale && !partitaIva) {
                 showToast('La Partita IVA è obbligatoria se specifichi la Ragione Sociale', 'error');
+                return;
+            }
+            
+            const privacyPolicy = form.querySelector('[name="privacy_policy"]').checked;
+            if (!privacyPolicy) {
+                showToast('Devi accettare la Privacy Policy', 'error');
                 return;
             }
             
@@ -1813,19 +1845,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Gestione upload
         initFileUpload();
-        
-        // Gestione ricerca file
-        const filesSearch = document.getElementById('files-search');
-        if (filesSearch) {
-            let searchTimeout;
-            filesSearch.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    currentPage = 1;
-                    loadUserFiles();
-                }, 500);
-            });
-        }
         
         // Carica dati iniziali
         loadUserStats();
@@ -1916,15 +1935,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const files = result.data.files;
                 
                 if (files.length === 0) {
-                    filesContainer.style.display = 'none';
-                    noFilesMessage.style.display = 'block';
+                    if (filesContainer) filesContainer.style.display = 'none';
+                    if (noFilesMessage) noFilesMessage.style.display = 'block';
                 } else {
-                    filesContainer.style.display = 'grid';
-                    noFilesMessage.style.display = 'none';
+                    if (filesContainer) filesContainer.style.display = 'grid';
+                    if (noFilesMessage) noFilesMessage.style.display = 'none';
                     renderFiles(files);
                 }
-                
-                renderPagination(result.data.pagination, 'files');
             }
         } catch (error) {
             console.error('Errore caricamento file:', error);
@@ -1934,6 +1951,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function renderFiles(files) {
         const container = document.getElementById('files-list');
+        if (!container) return;
         
         container.innerHTML = files.map(file => `
             <div class="file-card" data-file-id="${file.id}">
@@ -1962,14 +1980,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 const fileId = btn.dataset.fileId;
                 deleteFile(fileId);
-            });
-        });
-        
-        // Aggiungi event listener per visualizzazione dettagli
-        container.querySelectorAll('.file-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const fileId = card.dataset.fileId;
-                showFileModal(fileId);
             });
         });
     }
@@ -2023,11 +2033,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const activities = result.data.activities;
                 
                 if (activities.length === 0) {
-                    activityContainer.style.display = 'none';
-                    noActivityMessage.style.display = 'block';
+                    if (activityContainer) activityContainer.style.display = 'none';
+                    if (noActivityMessage) noActivityMessage.style.display = 'block';
                 } else {
-                    activityContainer.style.display = 'flex';
-                    noActivityMessage.style.display = 'none';
+                    if (activityContainer) activityContainer.style.display = 'flex';
+                    if (noActivityMessage) noActivityMessage.style.display = 'none';
                     renderActivity(activities);
                 }
             }
@@ -2038,6 +2048,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function renderActivity(activities) {
         const container = document.getElementById('activity-list');
+        if (!container) return;
         
         container.innerHTML = activities.map(activity => `
             <div class="activity-item">
@@ -2058,8 +2069,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const dropZone = document.getElementById('upload-drop-zone');
         const fileInput = document.getElementById('files-input');
         const uploadForm = document.getElementById('files-upload-form');
-        const selectedFilesContainer = document.getElementById('selected-files');
-        const uploadSubmit = document.getElementById('upload-submit');
         
         if (!dropZone || !fileInput || !uploadForm) return;
         
@@ -2104,13 +2113,14 @@ document.addEventListener('DOMContentLoaded', function() {
         renderSelectedFiles();
         
         const uploadSubmit = document.getElementById('upload-submit');
-        if (selectedFiles.length > 0) {
+        if (uploadSubmit && selectedFiles.length > 0) {
             uploadSubmit.style.display = 'block';
         }
     }
     
     function renderSelectedFiles() {
         const container = document.getElementById('selected-files');
+        if (!container) return;
         
         container.innerHTML = selectedFiles.map((file, index) => `
             <div class="selected-file">
@@ -2130,7 +2140,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderSelectedFiles();
                 
                 if (selectedFiles.length === 0) {
-                    document.getElementById('upload-submit').style.display = 'none';
+                    const uploadSubmit = document.getElementById('upload-submit');
+                    if (uploadSubmit) uploadSubmit.style.display = 'none';
                 }
             });
         });
@@ -2145,14 +2156,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const uploadProgress = document.getElementById('upload-progress');
-        const progressFill = uploadProgress.querySelector('.progress-fill');
+        const progressFill = uploadProgress?.querySelector('.progress-fill');
         const progressMessage = document.getElementById('progress-message');
         const progressPercentage = document.getElementById('progress-percentage');
         const uploadSubmit = document.getElementById('upload-submit');
         
         try {
-            uploadProgress.style.display = 'block';
-            uploadSubmit.disabled = true;
+            if (uploadProgress) uploadProgress.style.display = 'block';
+            if (uploadSubmit) uploadSubmit.disabled = true;
             
             const formData = new FormData();
             formData.append('action', 'naval_egt_upload_file');
@@ -2162,7 +2173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('files[]', file);
             });
             
-            // Simulazione progresso (WordPress non supporta upload progress nativo)
+            // Simulazione progresso
             let progress = 0;
             const progressInterval = setInterval(() => {
                 if (progress < 90) {
@@ -2187,15 +2198,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset form
                 selectedFiles = [];
                 renderSelectedFiles();
-                document.getElementById('files-input').value = '';
-                uploadSubmit.style.display = 'none';
+                const fileInput = document.getElementById('files-input');
+                if (fileInput) fileInput.value = '';
+                if (uploadSubmit) uploadSubmit.style.display = 'none';
                 
                 // Refresh dati
                 loadUserFiles();
                 loadUserStats();
                 
                 // Vai al tab file
-                document.querySelector('.dashboard-tab[data-tab="files"]').click();
+                const filesTab = document.querySelector('.dashboard-tab[data-tab="files"]');
+                if (filesTab) filesTab.click();
             } else {
                 showToast(result.data || 'Errore durante l\'upload', 'error');
             }
@@ -2203,20 +2216,22 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Errore di connessione durante l\'upload', 'error');
         } finally {
             setTimeout(() => {
-                uploadProgress.style.display = 'none';
-                uploadSubmit.disabled = false;
+                if (uploadProgress) uploadProgress.style.display = 'none';
+                if (uploadSubmit) uploadSubmit.disabled = false;
                 updateProgress(0);
             }, 1000);
         }
         
         function updateProgress(percent) {
-            progressFill.style.width = percent + '%';
-            progressPercentage.textContent = Math.round(percent) + '%';
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressPercentage) progressPercentage.textContent = Math.round(percent) + '%';
             
-            if (percent < 100) {
-                progressMessage.textContent = 'Caricamento in corso...';
-            } else {
-                progressMessage.textContent = 'Upload completato!';
+            if (progressMessage) {
+                if (percent < 100) {
+                    progressMessage.textContent = 'Caricamento in corso...';
+                } else {
+                    progressMessage.textContent = 'Upload completato!';
+                }
             }
         }
     }
@@ -2275,6 +2290,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
+        if (!container) {
+            // Crea container se non esiste
+            const toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+        
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         
@@ -2290,30 +2313,108 @@ document.addEventListener('DOMContentLoaded', function() {
             <span>${escapeHtml(message)}</span>
         `;
         
-        container.appendChild(toast);
+        const finalContainer = document.getElementById('toast-container');
+        finalContainer.appendChild(toast);
         
         setTimeout(() => {
             toast.remove();
         }, 5000);
     }
-    
-    function renderPagination(pagination, type) {
-        // Implementa paginazione se necessario
-        // Per ora placeholder
-    }
-    
-    async function showFileModal(fileId) {
-        // Implementa modal dettagli file
-        // Per ora placeholder
-        console.log('Show file modal for:', fileId);
-    }
 });
-
-// Variabili globali per AJAX (devono essere definite dal PHP)
-if (typeof navalEgtAjax === 'undefined') {
-    window.navalEgtAjax = {
-        ajax_url: '<?php echo admin_url("admin-ajax.php"); ?>',
-        nonce: '<?php echo wp_create_nonce("naval_egt_nonce"); ?>'
-    };
-}
 </script>
+
+<!-- Aggiungi stili CSS mancanti per il toast -->
+<style>
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    min-width: 300px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast-success {
+    background: #28a745;
+}
+
+.toast-error {
+    background: #dc3545;
+}
+
+.toast-info {
+    background: #17a2b8;
+}
+
+.toast-warning {
+    background: #ffc107;
+    color: #333;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Fix per upload area drag over */
+.upload-area.drag-over {
+    border-color: #0073aa;
+    background: rgba(0,115,170,0.05);
+}
+
+/* Stili per file selezionati */
+.selected-file {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.remove-file {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-file:hover {
+    background: #c82333;
+}
+</style>

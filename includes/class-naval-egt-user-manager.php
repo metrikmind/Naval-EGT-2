@@ -1,6 +1,6 @@
 <?php
 /**
- * Classe per la gestione degli utenti Naval EGT
+ * Classe per la gestione degli utenti Naval EGT - VERSIONE CORRETTA
  * Funzionalità: gestione utenti area riservata, autenticazione, profili
  */
 
@@ -62,6 +62,20 @@ class Naval_EGT_User_Manager {
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM $table_users WHERE email = %s",
             $email
+        ), ARRAY_A);
+    }
+    
+    /**
+     * Ottieni utente per username
+     */
+    public static function get_user_by_username($username) {
+        global $wpdb;
+        
+        $table_users = $wpdb->prefix . 'naval_egt_users';
+        
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_users WHERE username = %s",
+            $username
         ), ARRAY_A);
     }
     
@@ -133,10 +147,16 @@ class Naval_EGT_User_Manager {
     }
     
     /**
-     * Crea nuovo utente
+     * Crea nuovo utente - VERSIONE CORRETTA
      */
     public static function create_user($user_data) {
         global $wpdb;
+        
+        // Validazioni
+        $errors = self::validate_user_data($user_data);
+        if (!empty($errors)) {
+            return array('success' => false, 'message' => implode(', ', $errors));
+        }
         
         $table_users = $wpdb->prefix . 'naval_egt_users';
         
@@ -150,7 +170,14 @@ class Naval_EGT_User_Manager {
             $user_data['password'] = wp_hash_password($user_data['password']);
         }
         
+        // Imposta status default
+        if (empty($user_data['status'])) {
+            $manual_activation = Naval_EGT_Database::get_setting('manual_user_activation', '1');
+            $user_data['status'] = ($manual_activation === '1') ? 'SOSPESO' : 'ATTIVO';
+        }
+        
         $user_data['created_at'] = current_time('mysql');
+        $user_data['updated_at'] = current_time('mysql');
         
         $result = $wpdb->insert($table_users, $user_data);
         
@@ -165,12 +192,13 @@ class Naval_EGT_User_Manager {
                 null,
                 null,
                 0,
-                array('created_by' => 'admin')
+                array('created_by' => 'user_registration')
             );
             
             return array(
                 'success' => true,
                 'user_id' => $user_id,
+                'user_code' => $user_data['user_code'],
                 'message' => 'Utente creato con successo'
             );
         } else {
@@ -179,6 +207,57 @@ class Naval_EGT_User_Manager {
                 'message' => 'Errore nella creazione dell\'utente'
             );
         }
+    }
+    
+    /**
+     * Valida dati utente
+     */
+    private static function validate_user_data($data) {
+        $errors = array();
+        
+        // Campi obbligatori
+        if (empty($data['nome'])) {
+            $errors[] = 'Il nome è obbligatorio';
+        }
+        
+        if (empty($data['cognome'])) {
+            $errors[] = 'Il cognome è obbligatorio';
+        }
+        
+        if (empty($data['email']) || !is_email($data['email'])) {
+            $errors[] = 'Email non valida';
+        }
+        
+        if (empty($data['username'])) {
+            $errors[] = 'Lo username è obbligatorio';
+        }
+        
+        if (empty($data['password']) || strlen($data['password']) < 6) {
+            $errors[] = 'La password deve essere di almeno 6 caratteri';
+        }
+        
+        // Verifica unicità email
+        if (!empty($data['email'])) {
+            $existing_email = self::get_user_by_email($data['email']);
+            if ($existing_email && $existing_email['id'] != ($data['id'] ?? 0)) {
+                $errors[] = 'Email già esistente';
+            }
+        }
+        
+        // Verifica unicità username
+        if (!empty($data['username'])) {
+            $existing_username = self::get_user_by_username($data['username']);
+            if ($existing_username && $existing_username['id'] != ($data['id'] ?? 0)) {
+                $errors[] = 'Username già esistente';
+            }
+        }
+        
+        // Se c'è ragione sociale, P.IVA è obbligatoria
+        if (!empty($data['ragione_sociale']) && empty($data['partita_iva'])) {
+            $errors[] = 'La partita IVA è obbligatoria se si specifica la ragione sociale';
+        }
+        
+        return $errors;
     }
     
     /**
@@ -266,16 +345,16 @@ class Naval_EGT_User_Manager {
     }
     
     /**
-     * Verifica credenziali utente
+     * Autenticazione utente - VERSIONE CORRETTA
      */
-    public static function verify_credentials($username_or_email, $password) {
+    public static function authenticate($username_or_email, $password) {
         global $wpdb;
         
         $table_users = $wpdb->prefix . 'naval_egt_users';
         
         // Cerca per username o email
         $user = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_users WHERE (username = %s OR email = %s) AND status = 'ATTIVO'",
+            "SELECT * FROM $table_users WHERE (username = %s OR email = %s)",
             $username_or_email,
             $username_or_email
         ), ARRAY_A);
@@ -284,6 +363,14 @@ class Naval_EGT_User_Manager {
             return array(
                 'success' => false,
                 'message' => 'Credenziali non valide'
+            );
+        }
+        
+        // Verifica status
+        if ($user['status'] !== 'ATTIVO') {
+            return array(
+                'success' => false,
+                'message' => 'Account non attivo. Contatta l\'amministratore.'
             );
         }
         
@@ -297,6 +384,9 @@ class Naval_EGT_User_Manager {
                 array('%s'),
                 array('%d')
             );
+            
+            // Imposta sessione
+            self::set_current_user($user);
             
             // Log login
             Naval_EGT_Activity_Logger::log_activity(
@@ -319,11 +409,19 @@ class Naval_EGT_User_Manager {
     }
     
     /**
-     * Ottieni utente corrente dalla sessione
+     * Verifica credenziali utente (compatibilità)
+     */
+    public static function verify_credentials($username_or_email, $password) {
+        return self::authenticate($username_or_email, $password);
+    }
+    
+    /**
+     * Ottieni utente corrente dalla sessione - VERSIONE CORRETTA
      */
     public static function get_current_user() {
+        // Assicurati che la sessione sia avviata
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            @session_start();
         }
         
         if (isset($_SESSION['naval_egt_user_id'])) {
@@ -337,18 +435,28 @@ class Naval_EGT_User_Manager {
      * Imposta utente corrente nella sessione
      */
     public static function set_current_user($user) {
+        // Assicurati che la sessione sia avviata
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            @session_start();
         }
         
         $_SESSION['naval_egt_user_id'] = $user['id'];
         $_SESSION['naval_egt_user_code'] = $user['user_code'];
+        $_SESSION['naval_egt_user_data'] = $user;
+    }
+    
+    /**
+     * Verifica se utente è loggato
+     */
+    public static function is_logged_in() {
+        $current_user = self::get_current_user();
+        return !empty($current_user);
     }
     
     /**
      * Logout utente
      */
-    public static function logout_user() {
+    public static function logout() {
         $current_user = self::get_current_user();
         
         if ($current_user) {
@@ -361,6 +469,7 @@ class Naval_EGT_User_Manager {
         }
         
         if (session_status() !== PHP_SESSION_NONE) {
+            $_SESSION = array();
             session_destroy();
         }
         
@@ -429,5 +538,3 @@ class Naval_EGT_User_Manager {
         );
     }
 }
-
-?>
