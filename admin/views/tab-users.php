@@ -1,6 +1,6 @@
 <?php
 /**
- * Tab Gestione Utenti - Dashboard Admin (CORRETTO E COMPLETO)
+ * Tab Gestione Utenti - Dashboard Admin (SENZA link File)
  */
 
 if (!defined('ABSPATH')) {
@@ -176,9 +176,7 @@ $total_pages = ceil($total_users / $per_page);
                                     <?php echo $user['status'] === 'ATTIVO' ? 'Sospendi' : 'Attiva'; ?>
                                 </a> |
                             </span>
-                            <span class="files">
-                                <a href="?page=naval-egt&tab=files&user_id=<?php echo $user['id']; ?>">File</a> |
-                            </span>
+                            <!-- RIMOSSO: link File -->
                             <span class="delete">
                                 <a href="#" class="btn-delete-user text-danger" data-user-id="<?php echo $user['id']; ?>" data-user-name="<?php echo esc_attr($full_name); ?>">Elimina</a>
                             </span>

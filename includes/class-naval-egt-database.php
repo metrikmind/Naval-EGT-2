@@ -54,7 +54,7 @@ class Naval_EGT_Database {
             UNIQUE KEY username (username)
         ) $charset_collate;";
         
-        // Tabella log attività
+        // Tabella log attivitÃ 
         $table_logs = $wpdb->prefix . 'naval_egt_activity_logs';
         $sql_logs = "CREATE TABLE $table_logs (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -164,7 +164,7 @@ class Naval_EGT_Database {
         
         $table_files = $wpdb->prefix . 'naval_egt_files';
         
-        // Controlla se i nuovi campi esistono già
+        // Controlla se i nuovi campi esistono giÃ 
         $columns = $wpdb->get_results("DESCRIBE $table_files");
         $existing_columns = array_column($columns, 'Field');
         
@@ -207,7 +207,7 @@ class Naval_EGT_Database {
     }
     
     /**
-     * Inserisce le impostazioni di default
+     * Inserisce le impostazioni di default - CON URL DROPBOX
      */
     private static function insert_default_settings() {
         global $wpdb;
@@ -219,6 +219,7 @@ class Naval_EGT_Database {
             'dropbox_app_secret' => '',
             'dropbox_access_token' => '',
             'dropbox_refresh_token' => '',
+            'dropbox_user_base_url' => 'https://www.dropbox.com/home', // NUOVO: URL base per utenti
             'email_notifications' => '1',
             'allowed_file_types' => 'pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,dwg,dxf,zip,rar',
             'max_file_size' => '10485760', // 10MB
@@ -287,7 +288,7 @@ class Naval_EGT_Database {
     }
     
     /**
-     * AGGIORNATO: Ottiene statistiche utenti con più dettagli
+     * AGGIORNATO: Ottiene statistiche utenti con piÃ¹ dettagli
      */
     public static function get_user_stats() {
         global $wpdb;
@@ -325,7 +326,7 @@ class Naval_EGT_Database {
     }
     
     /**
-     * AGGIORNATO: Ottiene attività recenti con più dettagli
+     * AGGIORNATO: Ottiene attivitÃ  recenti con piÃ¹ dettagli
      */
     public static function get_recent_activities($limit = 10, $filter_actions = array()) {
         global $wpdb;
@@ -470,7 +471,7 @@ class Naval_EGT_Database {
         
         $table_logs = $wpdb->prefix . 'naval_egt_activity_logs';
         
-        // Elimina log più vecchi di 6 mesi
+        // Elimina log piÃ¹ vecchi di 6 mesi
         $deleted_logs = $wpdb->query(
             "DELETE FROM $table_logs 
              WHERE created_at < DATE_SUB(NOW(), INTERVAL 6 MONTH)"
@@ -486,7 +487,7 @@ class Naval_EGT_Database {
     }
     
     /**
-     * NUOVO: Verifica integrità database
+     * NUOVO: Verifica integritÃ  database
      */
     public static function check_database_integrity() {
         global $wpdb;

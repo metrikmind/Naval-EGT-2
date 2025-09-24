@@ -1,13 +1,13 @@
 <?php
 /**
- * Dashboard Admin - Versione corretta con gestione errori
+ * Dashboard Admin - Versione corretta senza gestione File
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Carica statistiche
+// Carica statistiche (rimuovi quelle relative ai file)
 $stats = Naval_EGT_Database::get_user_stats();
 $dropbox = Naval_EGT_Dropbox::get_instance();
 
@@ -112,7 +112,7 @@ if (!defined('NAVAL_EGT_VERSION')) {
         </div>
     </div>
 
-    <!-- Statistiche Principali -->
+    <!-- Statistiche Principali (RIMOSSO: stat card file) -->
     <div class="naval-egt-stats-grid">
         <div class="stat-card users-stat">
             <div class="stat-icon">
@@ -128,24 +128,6 @@ if (!defined('NAVAL_EGT_VERSION')) {
             </div>
             <div class="stat-actions">
                 <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=users'); ?>" class="button button-small">
-                    Gestisci
-                </a>
-            </div>
-        </div>
-
-        <div class="stat-card files-stat">
-            <div class="stat-icon">
-                <span class="dashicons dashicons-media-default"></span>
-            </div>
-            <div class="stat-content">
-                <h3><?php echo number_format($stats['total_files'] ?? 0); ?></h3>
-                <p>File Archiviati</p>
-                <small>
-                    <?php echo size_format($stats['total_storage'] ?? 0); ?> utilizzati
-                </small>
-            </div>
-            <div class="stat-actions">
-                <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=files'); ?>" class="button button-small">
                     Gestisci
                 </a>
             </div>
@@ -270,7 +252,7 @@ if (!defined('NAVAL_EGT_VERSION')) {
             </div>
         </div>
 
-        <!-- Azioni Rapide -->
+        <!-- Azioni Rapide (RIMOSSO: azione carica file) -->
         <div class="dashboard-section quick-actions-section">
             <h2><span class="dashicons dashicons-admin-generic"></span> Azioni Rapide</h2>
             
@@ -280,14 +262,6 @@ if (!defined('NAVAL_EGT_VERSION')) {
                        class="quick-action-btn">
                         <span class="dashicons dashicons-plus-alt"></span>
                         <span>Gestisci Utenti</span>
-                    </a>
-                </div>
-                
-                <div class="quick-action">
-                    <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=files'); ?>" 
-                       class="quick-action-btn">
-                        <span class="dashicons dashicons-upload"></span>
-                        <span>Carica File</span>
                     </a>
                 </div>
                 
@@ -304,6 +278,14 @@ if (!defined('NAVAL_EGT_VERSION')) {
                         <span class="dashicons dashicons-download"></span>
                         <span>Esporta Utenti</span>
                     </button>
+                </div>
+                
+                <div class="quick-action">
+                    <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=logs'); ?>" 
+                       class="quick-action-btn">
+                        <span class="dashicons dashicons-visibility"></span>
+                        <span>Visualizza Log</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -376,7 +358,7 @@ if (!defined('NAVAL_EGT_VERSION')) {
 </div>
 
 <style>
-/* Stili per la dashboard */
+/* Stili per la dashboard (RIMOSSO: .files-stat) */
 .naval-egt-system-status {
     margin: 20px 0;
 }
@@ -443,7 +425,6 @@ if (!defined('NAVAL_EGT_VERSION')) {
 }
 
 .users-stat .stat-icon { color: #0073aa; }
-.files-stat .stat-icon { color: #00a32a; }
 .activity-stat .stat-icon { color: #ff6900; }
 .registrations-stat .stat-icon { color: #9b51e0; }
 

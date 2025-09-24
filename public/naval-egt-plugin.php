@@ -3,7 +3,7 @@
  * Plugin Name: Naval EGT - Area Riservata Clienti
  * Plugin URI: https://metrikmind.it
  * Description: Plugin completo per gestione area riservata clienti con integrazione Dropbox
- * Version: 1.0.20
+ * Version: 1.0.23
  * Author: Metrikmind
  * Author URI: https://metrikmind.it
  * Requires at least: 6.8.2
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Definire costanti del plugin
-define('NAVAL_EGT_VERSION', '1.0.0');
+define('NAVAL_EGT_VERSION', '1.0.23');
 define('NAVAL_EGT_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('NAVAL_EGT_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('NAVAL_EGT_PLUGIN_FILE', __FILE__);
@@ -54,15 +54,18 @@ class Naval_EGT_Plugin {
         add_action('init', array($this, 'init'));
         add_action('admin_init', array($this, 'handle_dropbox_callback'));
         
-        // RIMOSSO: add_action('admin_menu', array($this, 'add_admin_menu'));
-        // Il menu viene gestito dalla classe Naval_EGT_Admin
-        
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_action('wp_enqueue_scripts', array($this, 'frontend_enqueue_scripts'));
-        add_action('wp_ajax_naval_egt_ajax', array($this, 'handle_ajax'));
-        add_action('wp_ajax_nopriv_naval_egt_ajax', array($this, 'handle_ajax'));
+        
         add_action('wp_ajax_naval_egt_configure_dropbox', array($this, 'handle_dropbox_config'));
         add_shortcode('naval_egt_area_riservata', array($this, 'area_riservata_shortcode'));
+        
+        // Debug helper - RIMUOVERE IN PRODUZIONE
+        add_action('wp_ajax_naval_egt_debug_password', array($this, 'debug_password'));
+        add_action('wp_ajax_nopriv_naval_egt_debug_password', array($this, 'debug_password'));
+        
+        // Helper per forzare reset password - RIMUOVERE IN PRODUZIONE
+        add_action('wp_ajax_naval_egt_force_reset_password', array($this, 'force_reset_password'));
     }
     
     /**
@@ -86,6 +89,15 @@ class Naval_EGT_Plugin {
     public function init() {
         load_plugin_textdomain('naval-egt', false, dirname(plugin_basename(__FILE__)) . '/languages');
         
+        // IMPORTANTE: Previeni output non desiderato durante le chiamate AJAX
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            $action = $_REQUEST['action'] ?? '';
+            if (strpos($action, 'naval_egt_') === 0) {
+                // Avvia output buffering per le chiamate AJAX del plugin
+                ob_start();
+            }
+        }
+        
         // Inizializza le classi principali
         Naval_EGT_Database::get_instance();
         Naval_EGT_User_Manager::get_instance();
@@ -98,6 +110,53 @@ class Naval_EGT_Plugin {
         
         // Inizializza frontend pubblico
         Naval_EGT_Public::init();
+    }
+    
+    /**
+     * Debug password helper - VERSIONE MIGLIORATA
+     */
+    public function debug_password() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $username = sanitize_text_field($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+        
+        if (empty($username) || empty($password)) {
+            wp_send_json_error('Username e password richiesti');
+        }
+        
+        error_log('Naval EGT Plugin: DEBUG PASSWORD REQUEST per utente: ' . $username);
+        
+        $debug_info = Naval_EGT_User_Manager::debug_password($username, $password);
+        wp_send_json_success($debug_info);
+    }
+    
+    /**
+     * Helper per forzare reset password - VERSIONE MIGLIORATA
+     */
+    public function force_reset_password() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $username = sanitize_text_field($_POST['username'] ?? '');
+        $new_password = $_POST['new_password'] ?? '';
+        
+        if (empty($username) || empty($new_password)) {
+            wp_send_json_error('Username e nuova password richiesti');
+        }
+        
+        error_log('Naval EGT Plugin: FORCE RESET PASSWORD per utente: ' . $username);
+        
+        $result = Naval_EGT_User_Manager::force_reset_password($username, $new_password);
+        
+        if ($result['success']) {
+            wp_send_json_success($result);
+        } else {
+            wp_send_json_error($result['message']);
+        }
     }
     
     /**
@@ -136,12 +195,12 @@ class Naval_EGT_Plugin {
             wp_die('Permessi insufficienti');
         }
         
-        error_log('Naval EGT: Callback OAuth ricevuto - GET params: ' . print_r($_GET, true));
+        error_log('Naval EGT Plugin: Callback OAuth ricevuto - GET params: ' . print_r($_GET, true));
         
         // Gestisce errori OAuth
         if (isset($_GET['error'])) {
             $error_message = isset($_GET['error_description']) ? $_GET['error_description'] : $_GET['error'];
-            error_log('Naval EGT: Errore OAuth ricevuto: ' . $error_message);
+            error_log('Naval EGT Plugin: Errore OAuth ricevuto: ' . $error_message);
             
             add_action('admin_notices', function() use ($error_message) {
                 echo '<div class="notice notice-error"><p><strong>Errore Dropbox:</strong> ' . esc_html($error_message) . '</p></div>';
@@ -160,14 +219,14 @@ class Naval_EGT_Plugin {
             }
             $redirect_uri = $site_url . '/wp-admin/admin.php?page=naval-egt-settings&dropbox_callback=1';
             
-            error_log('Naval EGT: Gestione callback OAuth - Code ricevuto: ' . substr($code, 0, 10) . '...');
-            error_log('Naval EGT: Redirect URI utilizzato: ' . $redirect_uri);
+            error_log('Naval EGT Plugin: Gestione callback OAuth - Code ricevuto: ' . substr($code, 0, 10) . '...');
+            error_log('Naval EGT Plugin: Redirect URI utilizzato: ' . $redirect_uri);
             
             $dropbox = Naval_EGT_Dropbox::get_instance();
             $result = $dropbox->exchange_code_for_token($code, $redirect_uri);
             
             if ($result['success']) {
-                error_log('Naval EGT: Token ottenuto con successo, test connessione...');
+                error_log('Naval EGT Plugin: Token ottenuto con successo, test connessione...');
                 
                 // Forza il reload delle credenziali
                 $dropbox->reload_credentials();
@@ -190,7 +249,7 @@ class Naval_EGT_Plugin {
                         echo '<p>✅ La connessione è attiva e funzionante.</p>';
                         echo '</div>';
                     });
-                    error_log('Naval EGT: Test connessione riuscito - Account: ' . (isset($account_info['data']['name']['display_name']) ? $account_info['data']['name']['display_name'] : 'N/A'));
+                    error_log('Naval EGT Plugin: Test connessione riuscito - Account: ' . (isset($account_info['data']['name']['display_name']) ? $account_info['data']['name']['display_name'] : 'N/A'));
                 } else {
                     add_action('admin_notices', function() use ($account_info) {
                         echo '<div class="notice notice-warning is-dismissible">';
@@ -199,7 +258,7 @@ class Naval_EGT_Plugin {
                         echo '<p>Riprova la configurazione se il problema persiste.</p>';
                         echo '</div>';
                     });
-                    error_log('Naval EGT: Test connessione fallito: ' . $account_info['message']);
+                    error_log('Naval EGT Plugin: Test connessione fallito: ' . $account_info['message']);
                 }
             } else {
                 add_action('admin_notices', function() use ($result) {
@@ -209,7 +268,7 @@ class Naval_EGT_Plugin {
                     echo '<p>Verifica le credenziali Dropbox e riprova.</p>';
                     echo '</div>';
                 });
-                error_log('Naval EGT: Errore ottenimento token: ' . $result['message']);
+                error_log('Naval EGT Plugin: Errore ottenimento token: ' . $result['message']);
             }
             
             // Redirect per pulire l'URL - con parametro di stato
@@ -220,7 +279,7 @@ class Naval_EGT_Plugin {
                 $redirect_url .= '&auth_result=error';
             }
             
-            error_log('Naval EGT: Redirect a: ' . $redirect_url);
+            error_log('Naval EGT Plugin: Redirect a: ' . $redirect_url);
             
             // Usa JavaScript per il redirect se gli header sono già stati inviati
             if (headers_sent()) {
@@ -232,7 +291,7 @@ class Naval_EGT_Plugin {
                 exit;
             }
         } else {
-            error_log('Naval EGT: Callback ricevuto senza codice di autorizzazione');
+            error_log('Naval EGT Plugin: Callback ricevuto senza codice di autorizzazione');
             add_action('admin_notices', function() {
                 echo '<div class="notice notice-error is-dismissible">';
                 echo '<p><strong>Errore:</strong> Codice di autorizzazione non ricevuto da Dropbox.</p>';
@@ -246,28 +305,36 @@ class Naval_EGT_Plugin {
      * Attivazione del plugin
      */
     public function activate() {
+        error_log('Naval EGT Plugin: === ATTIVAZIONE PLUGIN ===');
+        
         Naval_EGT_Database::create_tables();
         
         // Crea la pagina dell'area riservata se non esiste
         $page_exists = get_page_by_path('area-riservata-naval-egt');
         if (!$page_exists) {
-            wp_insert_post(array(
+            $page_id = wp_insert_post(array(
                 'post_title' => 'Area Riservata Naval EGT',
                 'post_content' => '[naval_egt_area_riservata]',
                 'post_status' => 'publish',
                 'post_type' => 'page',
                 'post_name' => 'area-riservata-naval-egt'
             ));
+            error_log('Naval EGT Plugin: Pagina area riservata creata con ID: ' . $page_id);
+        } else {
+            error_log('Naval EGT Plugin: Pagina area riservata già esistente');
         }
         
         // Flush rewrite rules
         flush_rewrite_rules();
+        
+        error_log('Naval EGT Plugin: Attivazione completata');
     }
     
     /**
      * Disattivazione del plugin
      */
     public function deactivate() {
+        error_log('Naval EGT Plugin: === DISATTIVAZIONE PLUGIN ===');
         flush_rewrite_rules();
     }
     
@@ -275,6 +342,8 @@ class Naval_EGT_Plugin {
      * Disinstallazione del plugin
      */
     public static function uninstall() {
+        error_log('Naval EGT Plugin: === DISINSTALLAZIONE PLUGIN ===');
+        
         Naval_EGT_Database::drop_tables();
         
         // Rimuove le opzioni del plugin
@@ -286,14 +355,11 @@ class Naval_EGT_Plugin {
         $page = get_page_by_path('area-riservata-naval-egt');
         if ($page) {
             wp_delete_post($page->ID, true);
+            error_log('Naval EGT Plugin: Pagina area riservata eliminata');
         }
+        
+        error_log('Naval EGT Plugin: Disinstallazione completata');
     }
-    
-    /**
-     * RIMOSSO: add_admin_menu - gestito da Naval_EGT_Admin
-     * RIMOSSO: admin_page - gestito da Naval_EGT_Admin  
-     * RIMOSSO: settings_page - gestito da Naval_EGT_Admin
-     */
     
     /**
      * Enqueue scripts admin
@@ -319,7 +385,9 @@ class Naval_EGT_Plugin {
      * Enqueue scripts frontend
      */
     public function frontend_enqueue_scripts() {
-        if (is_page('area-riservata-naval-egt') || has_shortcode(get_post()->post_content ?? '', 'naval_egt_area_riservata')) {
+        global $post;
+        
+        if (is_page('area-riservata-naval-egt') || ($post && has_shortcode($post->post_content ?? '', 'naval_egt_area_riservata'))) {
             wp_enqueue_script('naval-egt-public-js', NAVAL_EGT_PLUGIN_URL . 'public/js/public.js', array('jquery'), NAVAL_EGT_VERSION, true);
             wp_enqueue_style('naval-egt-public-css', NAVAL_EGT_PLUGIN_URL . 'public/css/public.css', array(), NAVAL_EGT_VERSION);
             
@@ -332,16 +400,9 @@ class Naval_EGT_Plugin {
                     'upload_error' => __('Errore durante il caricamento', 'naval-egt')
                 )
             ));
+            
+            error_log('Naval EGT Plugin: Scripts frontend caricati per pagina: ' . ($post ? $post->post_name : 'N/A'));
         }
-    }
-    
-    /**
-     * Gestisce le richieste AJAX - DELEGATO alla classe Admin
-     */
-    public function handle_ajax() {
-        // Delega alla classe Naval_EGT_Admin
-        $admin = Naval_EGT_Admin::get_instance();
-        $admin->handle_ajax_requests();
     }
     
     /**
@@ -353,6 +414,12 @@ class Naval_EGT_Plugin {
         ), $atts, 'naval_egt_area_riservata');
         
         ob_start();
+        
+        // Assicurati che le sessioni siano avviate per lo shortcode
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+        
         require_once NAVAL_EGT_PLUGIN_DIR . 'public/views/area-riservata.php';
         return ob_get_clean();
     }
@@ -360,3 +427,24 @@ class Naval_EGT_Plugin {
 
 // Inizializza il plugin
 Naval_EGT_Plugin::get_instance();
+
+// Aggiungi funzione helper per debug da console PHP (RIMUOVERE IN PRODUZIONE)
+if (!function_exists('naval_egt_debug_user')) {
+    function naval_egt_debug_user($username, $password) {
+        if (class_exists('Naval_EGT_User_Manager')) {
+            return Naval_EGT_User_Manager::debug_password($username, $password);
+        }
+        return array('error' => 'User Manager non disponibile');
+    }
+}
+
+// Funzione per forzare reset password da console PHP (RIMUOVERE IN PRODUZIONE)
+if (!function_exists('naval_egt_reset_password')) {
+    function naval_egt_reset_password($username, $new_password) {
+        if (class_exists('Naval_EGT_User_Manager')) {
+            return Naval_EGT_User_Manager::force_reset_password($username, $new_password);
+        }
+        return array('error' => 'User Manager non disponibile');
+    }
+}
+?>

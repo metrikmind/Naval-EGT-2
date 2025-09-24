@@ -1,6 +1,6 @@
 <?php
 /**
- * Classe per la gestione del frontend pubblico - VERSIONE CORRETTA
+ * Classe per la gestione del frontend pubblico - VERSIONE CORRETTA CON FIX PASSWORD
  */
 
 if (!defined('ABSPATH')) {
@@ -23,11 +23,14 @@ class Naval_EGT_Public {
         // Avvia sessione solo se necessario e possibile
         add_action('init', array($this, 'maybe_start_session'), 1);
         
-        // Handlers AJAX per login/registrazione
+        // Handlers AJAX per login/registrazione - FIX PRINCIPALI
         add_action('wp_ajax_naval_egt_login', array($this, 'handle_login'));
         add_action('wp_ajax_nopriv_naval_egt_login', array($this, 'handle_login'));
-        add_action('wp_ajax_naval_egt_register', array($this, 'handle_registration'));
-        add_action('wp_ajax_nopriv_naval_egt_register', array($this, 'handle_registration'));
+        
+        // FIX: Handler corretto per registrazione
+        add_action('wp_ajax_naval_egt_register_request', array($this, 'handle_registration'));
+        add_action('wp_ajax_nopriv_naval_egt_register_request', array($this, 'handle_registration'));
+        
         add_action('wp_ajax_naval_egt_logout', array($this, 'handle_logout'));
         
         // Handlers per utenti autenticati
@@ -49,6 +52,9 @@ class Naval_EGT_Public {
         if ($this->should_start_session()) {
             if (@session_start()) {
                 self::$session_started = true;
+                error_log('Naval EGT Public: Sessione avviata - ID: ' . session_id());
+            } else {
+                error_log('Naval EGT Public: ERRORE - Impossibile avviare la sessione');
             }
         }
     }
@@ -82,152 +88,289 @@ class Naval_EGT_Public {
         if (!self::$session_started && !headers_sent()) {
             if (!session_id() && @session_start()) {
                 self::$session_started = true;
+                error_log('Naval EGT Public: Sessione garantita - ID: ' . session_id());
             }
         }
         return self::$session_started;
     }
     
     /**
-     * Gestisce il login utente - VERSIONE CORRETTA
+     * Gestisce il login utente - VERSIONE CORRETTA CON DEBUG AVANZATO
      */
     public function handle_login() {
-        check_ajax_referer('naval_egt_nonce', 'nonce');
-        
-        $this->ensure_session();
-        
-        $login = sanitize_text_field($_POST['login'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $remember = isset($_POST['remember']) && $_POST['remember'] == '1';
-        
-        if (empty($login) || empty($password)) {
-            wp_send_json_error('Inserisci email/username e password');
-        }
-        
-        $result = Naval_EGT_User_Manager::authenticate($login, $password);
-        
-        if ($result['success']) {
-            // Se "ricordami" è selezionato, imposta cookie
-            if ($remember) {
-                $cookie_expiry = time() + (30 * DAY_IN_SECONDS);
-                setcookie('naval_egt_remember', base64_encode($login), $cookie_expiry, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+        try {
+            // Log debug iniziale
+            error_log('Naval EGT Public: === HANDLE LOGIN CHIAMATO ===');
+            
+            // Debug POST data (senza password completa)
+            $debug_post = $_POST;
+            if (isset($debug_post['password'])) {
+                $debug_post['password'] = substr($debug_post['password'], 0, 3) . '*** (len: ' . strlen($_POST['password']) . ')';
+            }
+            error_log('Naval EGT Public: POST data ricevuta: ' . json_encode($debug_post));
+            
+            // Verifica nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'naval_egt_nonce')) {
+                error_log('Naval EGT Public: ERRORE - Nonce verification failed');
+                wp_send_json_error('Token di sicurezza non valido');
+                return;
             }
             
-            wp_send_json_success(array(
-                'message' => 'Login effettuato con successo',
-                'redirect' => $_POST['redirect_to'] ?? '',
-                'user' => array(
-                    'nome' => $result['user']['nome'],
-                    'cognome' => $result['user']['cognome'],
-                    'user_code' => $result['user']['user_code']
-                )
-            ));
-        } else {
-            wp_send_json_error($result['message']);
+            $this->ensure_session();
+            
+            $login = sanitize_text_field($_POST['login'] ?? '');
+            $password = $_POST['password'] ?? ''; // NON sanitizzare la password
+            $remember = isset($_POST['remember']) && $_POST['remember'] == '1';
+            
+            if (empty($login) || empty($password)) {
+                error_log('Naval EGT Public: ERRORE - Campi login o password vuoti');
+                wp_send_json_error('Inserisci email/username e password');
+                return;
+            }
+            
+            error_log('Naval EGT Public: Tentativo login per: ' . $login);
+            error_log('Naval EGT Public: Password length: ' . strlen($password));
+            
+            // Debug caratteri speciali nella password
+            if (preg_match('/[^a-zA-Z0-9]/', $password)) {
+                error_log('Naval EGT Public: Password contiene caratteri speciali');
+            }
+            
+            // CHIAMATA CORRETTA AL USER MANAGER CON FIX PASSWORD
+            $result = Naval_EGT_User_Manager::authenticate($login, $password);
+            
+            if ($result['success']) {
+                error_log('Naval EGT Public: LOGIN RIUSCITO per utente ID: ' . $result['user']['id']);
+                
+                // Se "ricordami" è selezionato, imposta cookie
+                if ($remember) {
+                    $cookie_expiry = time() + (30 * DAY_IN_SECONDS);
+                    setcookie('naval_egt_remember', base64_encode($login), $cookie_expiry, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+                    error_log('Naval EGT Public: Cookie "ricordami" impostato');
+                }
+                
+                // Verifica che la sessione sia stata impostata
+                $current_user = Naval_EGT_User_Manager::get_current_user();
+                if ($current_user) {
+                    error_log('Naval EGT Public: Verifica sessione OK - Utente in sessione: ID ' . $current_user['id']);
+                } else {
+                    error_log('Naval EGT Public: ERRORE - Sessione non impostata correttamente dopo login!');
+                }
+                
+                wp_send_json_success(array(
+                    'message' => 'Login effettuato con successo',
+                    'redirect_url' => $_POST['redirect_to'] ?? home_url('/area-riservata-naval-egt/'),
+                    'user' => array(
+                        'nome' => $result['user']['nome'],
+                        'cognome' => $result['user']['cognome'],
+                        'user_code' => $result['user']['user_code']
+                    )
+                ));
+            } else {
+                error_log('Naval EGT Public: LOGIN FALLITO per: ' . $login . ' - Motivo: ' . $result['message']);
+                wp_send_json_error($result['message']);
+            }
+            
+        } catch (Exception $e) {
+            error_log('Naval EGT Public Login Exception: ' . $e->getMessage());
+            error_log('Naval EGT Public Login Exception Stack: ' . $e->getTraceAsString());
+            wp_send_json_error('Errore interno del server durante il login');
         }
     }
     
     /**
-     * Gestisce la registrazione utente - VERSIONE CORRETTA
+     * Gestisce la registrazione utente - VERSIONE CORRETTA FINALE
      */
     public function handle_registration() {
-        check_ajax_referer('naval_egt_nonce', 'nonce');
-        
-        // Verifica se la registrazione è abilitata
-        $registration_enabled = Naval_EGT_Database::get_setting('user_registration_enabled', '1');
-        if ($registration_enabled !== '1') {
-            wp_send_json_error('Le registrazioni sono temporaneamente disabilitate');
-        }
-        
-        $data = array(
-            'nome' => sanitize_text_field($_POST['nome'] ?? ''),
-            'cognome' => sanitize_text_field($_POST['cognome'] ?? ''),
-            'email' => sanitize_email($_POST['email'] ?? ''),
-            'telefono' => sanitize_text_field($_POST['telefono'] ?? ''),
-            'username' => sanitize_user($_POST['username'] ?? ''),
-            'password' => $_POST['password'] ?? '',
-            'password_confirm' => $_POST['password_confirm'] ?? '',
-            'ragione_sociale' => sanitize_text_field($_POST['ragione_sociale'] ?? ''),
-            'partita_iva' => sanitize_text_field($_POST['partita_iva'] ?? ''),
-            'privacy_policy' => isset($_POST['privacy_policy']) ? '1' : '0'
-        );
-        
-        // Validazioni aggiuntive
-        if ($data['password'] !== $data['password_confirm']) {
-            wp_send_json_error('Le password non corrispondono');
-        }
-        
-        if ($data['privacy_policy'] !== '1') {
-            wp_send_json_error('È necessario accettare la Privacy Policy');
-        }
-        
-        // Rimuovi conferma password dai dati da salvare
-        unset($data['password_confirm']);
-        unset($data['privacy_policy']);
-        
-        // Crea l'utente
-        $result = Naval_EGT_User_Manager::create_user($data);
-        
-        if ($result['success']) {
-            // Invio email all'admin
-            $this->send_admin_registration_notification($data, $result['user_code']);
+        try {
+            // Log debug iniziale
+            error_log('Naval EGT Public: === HANDLE REGISTRATION CHIAMATO ===');
             
-            wp_send_json_success(array(
-                'message' => 'Richiesta di registrazione inviata con successo! Il tuo account sarà attivato manualmente dal nostro staff. Riceverai una email di conferma.',
-                'user_code' => $result['user_code']
-            ));
-        } else {
-            wp_send_json_error($result['message']);
+            // Debug POST data (senza password)
+            $debug_post = $_POST;
+            if (isset($debug_post['password'])) {
+                $debug_post['password'] = substr($debug_post['password'], 0, 3) . '*** (len: ' . strlen($_POST['password']) . ')';
+            }
+            if (isset($debug_post['password_confirm'])) {
+                $debug_post['password_confirm'] = substr($debug_post['password_confirm'], 0, 3) . '*** (len: ' . strlen($_POST['password_confirm']) . ')';
+            }
+            error_log('Naval EGT Public: POST data ricevuta: ' . json_encode($debug_post));
+            
+            // Verifica nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'naval_egt_nonce')) {
+                error_log('Naval EGT Public: ERRORE - Nonce verification failed for registration');
+                wp_send_json_error('Token di sicurezza non valido');
+                return;
+            }
+            
+            // Verifica se la registrazione è abilitata
+            $registration_enabled = Naval_EGT_Database::get_setting('user_registration_enabled', '1');
+            if ($registration_enabled !== '1') {
+                error_log('Naval EGT Public: ERRORE - Registrazioni disabilitate');
+                wp_send_json_error('Le registrazioni sono temporaneamente disabilitate');
+                return;
+            }
+            
+            // Raccolta e sanitizzazione dati - NON sanitizzare le password
+            $data = array(
+                'nome' => sanitize_text_field($_POST['nome'] ?? ''),
+                'cognome' => sanitize_text_field($_POST['cognome'] ?? ''),
+                'email' => sanitize_email($_POST['email'] ?? ''),
+                'username' => sanitize_user($_POST['username'] ?? ''),
+                'password' => $_POST['password'] ?? '', // NON sanitizzare
+                'password_confirm' => $_POST['password_confirm'] ?? '', // NON sanitizzare
+                'telefono' => sanitize_text_field($_POST['telefono'] ?? ''),
+                'ragione_sociale' => sanitize_text_field($_POST['ragione_sociale'] ?? ''),
+                'partita_iva' => sanitize_text_field($_POST['partita_iva'] ?? ''),
+                'privacy_consent' => isset($_POST['privacy_consent']) ? '1' : '0'
+            );
+            
+            // Log dati raccolti (senza password)
+            $log_data = $data;
+            $log_data['password'] = strlen($data['password']) > 0 ? substr($data['password'], 0, 3) . '*** (len: ' . strlen($data['password']) . ')' : 'VUOTA';
+            $log_data['password_confirm'] = strlen($data['password_confirm']) > 0 ? substr($data['password_confirm'], 0, 3) . '*** (len: ' . strlen($data['password_confirm']) . ')' : 'VUOTA';
+            error_log('Naval EGT Public: Dati raccolti per validazione: ' . json_encode($log_data));
+            
+            // Validazioni server-side complete
+            $validation_errors = array();
+            
+            // Campi obbligatori
+            if (empty($data['nome'])) {
+                $validation_errors[] = 'Il nome è obbligatorio';
+            }
+            
+            if (empty($data['cognome'])) {
+                $validation_errors[] = 'Il cognome è obbligatorio';
+            }
+            
+            if (empty($data['email']) || !is_email($data['email'])) {
+                $validation_errors[] = 'Email non valida';
+            }
+            
+            if (empty($data['username']) || strlen($data['username']) < 4) {
+                $validation_errors[] = 'Lo username è obbligatorio e deve essere di almeno 4 caratteri';
+            }
+            
+            // Validazione username formato
+            if (!empty($data['username']) && !preg_match('/^[a-zA-Z0-9._-]+$/', $data['username'])) {
+                $validation_errors[] = 'Lo username può contenere solo lettere, numeri, punti e trattini';
+            }
+            
+            // Validazione password - IMPORTANTE: prima dell'hash
+            if (empty($data['password']) || strlen($data['password']) < 6) {
+                $validation_errors[] = 'La password deve essere di almeno 6 caratteri';
+            }
+            
+            // Verifica corrispondenza password - IMPORTANTE: prima dell'hash
+            if ($data['password'] !== $data['password_confirm']) {
+                $validation_errors[] = 'Le password non corrispondono';
+            }
+            
+            // Verifica privacy policy
+            if ($data['privacy_consent'] !== '1') {
+                $validation_errors[] = 'È necessario accettare la Privacy Policy';
+            }
+            
+            // Verifica unicità email e username
+            if (!empty($data['email'])) {
+                $existing_email = Naval_EGT_User_Manager::get_user_by_email($data['email']);
+                if ($existing_email) {
+                    $validation_errors[] = 'Email già utilizzata da un altro utente';
+                }
+            }
+            
+            if (!empty($data['username'])) {
+                $existing_username = Naval_EGT_User_Manager::get_user_by_username($data['username']);
+                if ($existing_username) {
+                    $validation_errors[] = 'Username già utilizzato da un altro utente';
+                }
+            }
+            
+            // Se ci sono errori, ritorna subito
+            if (!empty($validation_errors)) {
+                error_log('Naval EGT Public: ERRORE - Validation errors: ' . implode(', ', $validation_errors));
+                wp_send_json_error(implode(', ', $validation_errors));
+                return;
+            }
+            
+            error_log('Naval EGT Public: Validazioni passate, procedo con creazione utente');
+            
+            // Rimuovi campi non necessari per il database
+            unset($data['password_confirm']);
+            unset($data['privacy_consent']);
+            
+            // Log password finale prima dell'invio al User Manager
+            error_log('Naval EGT Public: Password finale da inviare al User Manager (primi 3 caratteri): ' . substr($data['password'], 0, 3) . '*** (lunghezza: ' . strlen($data['password']) . ')');
+            
+            // CREA L'UTENTE NEL DATABASE - LA PASSWORD VERRÀ HASHATA NEL USER MANAGER
+            $result = Naval_EGT_User_Manager::create_user($data);
+            
+            if ($result['success']) {
+                // Log di successo
+                error_log('Naval EGT Public: UTENTE CREATO CON SUCCESSO - ID: ' . $result['user_id'] . ', Code: ' . $result['user_code']);
+                
+                // IMPORTANTE: Pulisci qualsiasi output buffer prima di inviare JSON
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                
+                wp_send_json_success(array(
+                    'message' => 'Richiesta di registrazione inviata con successo! Il tuo account sarà attivato manualmente dal nostro staff. Riceverai una email di conferma.',
+                    'user_code' => $result['user_code'],
+                    'user_id' => $result['user_id']
+                ));
+            } else {
+                // Log errore
+                error_log('Naval EGT Public: ERRORE creazione utente: ' . $result['message']);
+                
+                // IMPORTANTE: Pulisci qualsiasi output buffer prima di inviare JSON
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                
+                wp_send_json_error($result['message']);
+            }
+            
+        } catch (Exception $e) {
+            error_log('Naval EGT Public Registration Exception: ' . $e->getMessage());
+            error_log('Naval EGT Public Registration Exception Stack: ' . $e->getTraceAsString());
+            wp_send_json_error('Errore interno del server durante la registrazione');
         }
-    }
-    
-    /**
-     * Invia notifica admin per registrazione
-     */
-    private function send_admin_registration_notification($user_data, $user_code) {
-        $email_enabled = Naval_EGT_Database::get_setting('email_notifications', '1');
-        if ($email_enabled !== '1') {
-            return;
-        }
-        
-        $admin_email = get_option('admin_email');
-        $subject = 'Nuova registrazione utente - Naval EGT';
-        
-        $message = sprintf(
-            "Nuova richiesta di registrazione ricevuta:\n\n" .
-            "Nome: %s %s\n" .
-            "Email: %s\n" .
-            "Username: %s\n" .
-            "Codice Utente: %s\n" .
-            "Azienda: %s\n" .
-            "Telefono: %s\n\n" .
-            "Vai su %s per attivare l'utente.",
-            $user_data['nome'],
-            $user_data['cognome'],
-            $user_data['email'],
-            $user_data['username'],
-            $user_code,
-            $user_data['ragione_sociale'] ?: 'Non specificata',
-            $user_data['telefono'] ?: 'Non specificato',
-            admin_url('admin.php?page=naval-egt&tab=users')
-        );
-        
-        wp_mail($admin_email, $subject, $message);
     }
     
     /**
      * Gestisce il logout utente
      */
     public function handle_logout() {
-        $current_user = Naval_EGT_User_Manager::get_current_user();
-        
-        Naval_EGT_User_Manager::logout();
-        
-        // Rimuovi cookie "ricordami"
-        if (isset($_COOKIE['naval_egt_remember'])) {
-            setcookie('naval_egt_remember', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+        try {
+            error_log('Naval EGT Public: === HANDLE LOGOUT CHIAMATO ===');
+            
+            // Verifica nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'naval_egt_nonce')) {
+                error_log('Naval EGT Public: ERRORE - Logout nonce verification failed');
+                wp_send_json_error('Token di sicurezza non valido');
+                return;
+            }
+            
+            $current_user = Naval_EGT_User_Manager::get_current_user();
+            if ($current_user) {
+                error_log('Naval EGT Public: Logout per utente: ' . $current_user['nome'] . ' ' . $current_user['cognome']);
+            }
+            
+            Naval_EGT_User_Manager::logout();
+            
+            // Rimuovi cookie "ricordami"
+            if (isset($_COOKIE['naval_egt_remember'])) {
+                setcookie('naval_egt_remember', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+                error_log('Naval EGT Public: Cookie "ricordami" rimosso');
+            }
+            
+            wp_send_json_success(array('message' => 'Logout effettuato con successo'));
+            
+        } catch (Exception $e) {
+            error_log('Naval EGT Public Logout Exception: ' . $e->getMessage());
+            wp_send_json_error('Errore interno del server durante il logout');
         }
-        
-        wp_send_json_success(array('message' => 'Logout effettuato con successo'));
     }
     
     /**
@@ -625,3 +768,4 @@ class Naval_EGT_Public {
         }
     }
 }
+?>

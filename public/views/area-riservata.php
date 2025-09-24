@@ -1,592 +1,416 @@
 <?php
 /**
- * Template per l'area riservata utenti - Interfaccia completa
+ * Template area riservata - VERSIONE CORRETTA FINALE CON DEBUG PASSWORD
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Verifica se l'utente è loggato
 $current_user = Naval_EGT_User_Manager::get_current_user();
 $is_logged_in = !empty($current_user);
-
-// Carica informazioni pubbliche
-$public_info = Naval_EGT_Public::get_public_info();
 ?>
 
 <div id="naval-egt-area-riservata" class="naval-egt-container">
     
     <?php if (!$is_logged_in): ?>
         <!-- SEZIONE LOGIN/REGISTRAZIONE -->
-        <div class="naval-egt-auth-section">
-            <div class="auth-tabs">
-                <button type="button" class="auth-tab active" data-tab="login">
-                    <span class="dashicons dashicons-unlock"></span> Accedi
-                </button>
-                <?php if ($public_info['registration_enabled']): ?>
-                <button type="button" class="auth-tab" data-tab="register">
-                    <span class="dashicons dashicons-plus"></span> Registrati
-                </button>
-                <?php endif; ?>
-            </div>
+        <div class="forms-section">
+            <!-- LOGIN FORM -->
+            <div class="login-box">
+                <div class="login-header">
+                    <div class="login-icon">🔐</div>
+                    <h3>Accedi al tuo account</h3>
+                </div>
 
-            <!-- TAB LOGIN -->
-            <div id="tab-login" class="auth-tab-content active">
-                <div class="auth-card">
-                    <div class="auth-header">
-                        <h2>Accedi alla tua Area Riservata</h2>
-                        <p>Inserisci le tue credenziali per accedere ai tuoi file</p>
+                <form id="naval-login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email o Username</label>
+                        <input type="text" id="login-email" name="login" required>
                     </div>
 
-                    <form id="naval-login-form" class="auth-form">
-                        <?php wp_nonce_field('naval_egt_nonce', 'nonce'); ?>
-                        <input type="hidden" name="naval_action" value="login">
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="login-email">Email o Username</label>
-                            <div class="input-wrapper">
-                                <span class="input-icon dashicons dashicons-admin-users"></span>
-                                <input type="text" id="login-email" name="login" required 
-                                       placeholder="Inserisci email o username">
-                            </div>
-                        </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="remember" name="remember" value="1">
+                        <label for="remember">Ricordami per i prossimi accessi</label>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="login-password">Password</label>
-                            <div class="input-wrapper">
-                                <span class="input-icon dashicons dashicons-lock"></span>
-                                <input type="password" id="login-password" name="password" required 
-                                       placeholder="Inserisci password">
-                                <button type="button" class="toggle-password" title="Mostra/Nascondi password">
-                                    <span class="dashicons dashicons-visibility"></span>
-                                </button>
-                            </div>
-                        </div>
+                    <button type="submit" class="btn-primary">
+                        <span class="btn-text">Accedi all'Area Riservata</span>
+                        <span class="btn-loading" style="display: none;">Caricamento...</span>
+                    </button>
+                </form>
 
-                        <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="remember" value="1">
-                                <span class="checkmark"></span>
-                                Ricordami per 30 giorni
-                            </label>
-                        </div>
-
-                        <button type="submit" class="btn-primary btn-full-width">
-                            <span class="btn-text">Accedi</span>
-                            <span class="btn-loading" style="display: none;">
-                                <span class="spinner"></span> Accesso in corso...
-                            </span>
-                        </button>
-
-                        <div class="auth-footer">
-                            <p>Non ricordi la password? <a href="mailto:tecnica@naval.it">Contatta il supporto</a></p>
-                        </div>
-                    </form>
+                <div class="login-footer">
+                    <p><strong>Non hai un account?</strong> 
+                    <a href="#" class="register-toggle-link">Richiedi registrazione</a></p>
                 </div>
             </div>
 
-            <!-- TAB REGISTRAZIONE -->
-            <?php if ($public_info['registration_enabled']): ?>
-            <div id="tab-register" class="auth-tab-content">
-                <div class="auth-card">
-                    <div class="auth-header">
-                        <h2>Richiedi Accesso</h2>
-                        <p>Compila il form per richiedere l'attivazione del tuo account</p>
+            <!-- REGISTRATION FORM -->
+            <div class="register-box" style="display: none;">
+                <div class="register-header">
+                    <div class="register-icon">📝</div>
+                    <h3>Richiedi Registrazione</h3>
+                </div>
+
+                <form id="naval-register-form">
+                    <div class="form-group">
+                        <label for="register-nome">Nome *</label>
+                        <input type="text" id="register-nome" name="nome" required>
                     </div>
 
-                    <form id="naval-register-form" class="auth-form">
-                        <?php wp_nonce_field('naval_egt_nonce', 'nonce'); ?>
-                        <input type="hidden" name="naval_action" value="register">
+                    <div class="form-group">
+                        <label for="register-cognome">Cognome *</label>
+                        <input type="text" id="register-cognome" name="cognome" required>
+                    </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="reg-nome">Nome *</label>
-                                <input type="text" id="reg-nome" name="nome" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="reg-cognome">Cognome *</label>
-                                <input type="text" id="reg-cognome" name="cognome" required>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-email">Email *</label>
+                        <input type="email" id="register-email" name="email" required>
+                    </div>
 
-                        <div class="form-group">
-                            <label for="reg-email">Email *</label>
-                            <input type="email" id="reg-email" name="email" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-username">Username *</label>
+                        <input type="text" id="register-username" name="username" required minlength="4" maxlength="20" pattern="[a-zA-Z0-9._-]+">
+                        <small style="color: #666; font-size: 12px;">Almeno 4 caratteri, solo lettere, numeri, punti e trattini</small>
+                    </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="reg-username">Username *</label>
-                                <input type="text" id="reg-username" name="username" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="reg-telefono">Telefono</label>
-                                <input type="tel" id="reg-telefono" name="telefono">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-password">Password *</label>
+                        <input type="password" id="register-password" name="password" required minlength="6">
+                        <small style="color: #666; font-size: 12px;">Almeno 6 caratteri</small>
+                    </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="reg-password">Password *</label>
-                                <input type="password" id="reg-password" name="password" required>
-                                <small>Minimo 6 caratteri</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="reg-password-confirm">Conferma Password *</label>
-                                <input type="password" id="reg-password-confirm" name="password_confirm" required>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Conferma Password *</label>
+                        <input type="password" id="register-password-confirm" name="password_confirm" required minlength="6">
+                    </div>
 
-                        <div class="form-section-title">
-                            <h4>Informazioni Azienda (Opzionale)</h4>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-telefono">Telefono</label>
+                        <input type="tel" id="register-telefono" name="telefono">
+                    </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="reg-ragione-sociale">Ragione Sociale</label>
-                                <input type="text" id="reg-ragione-sociale" name="ragione_sociale">
-                            </div>
-                            <div class="form-group">
-                                <label for="reg-partita-iva">Partita IVA</label>
-                                <input type="text" id="reg-partita-iva" name="partita_iva">
-                                <small>Obbligatoria se specifichi la Ragione Sociale</small>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-azienda">Ragione Sociale</label>
+                        <input type="text" id="register-azienda" name="ragione_sociale">
+                    </div>
 
-                        <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="privacy_policy" value="1" required>
-                                <span class="checkmark"></span>
-                                Accetto la <a href="#" target="_blank">Privacy Policy</a> *
-                            </label>
-                        </div>
+                    <div class="form-group">
+                        <label for="register-piva">Partita IVA</label>
+                        <input type="text" id="register-piva" name="partita_iva">
+                    </div>
 
-                        <button type="submit" class="btn-primary btn-full-width">
-                            <span class="btn-text">Richiedi Registrazione</span>
-                            <span class="btn-loading" style="display: none;">
-                                <span class="spinner"></span> Invio in corso...
-                            </span>
-                        </button>
+                    <div class="form-group checkbox-group privacy-group">
+                        <input type="checkbox" id="privacy-consent" name="privacy_consent" value="1" required>
+                        <label for="privacy-consent">
+                            Accetto l'informativa per il trattamento dei dati personali: Articoli 13 e 14 REGOLAMENTO EUROPEO N. 679/2016 D.lgs. 196/2003 novellato dal D.lgs. 101/2018.<a href="https://www.navalegt.it/privacy-policy-2/" target="_blank" class="privacy-link"> <b>Leggi di più</b></a>*
+                        </label>
+                    </div>
 
-                        <div class="auth-footer">
-                            <p><strong>Nota:</strong> La registrazione richiede approvazione manuale. Riceverai una email di conferma.</p>
-                        </div>
-                    </form>
+                    <button type="submit" class="btn-primary">
+                        <span class="btn-text">Invia Richiesta di Registrazione</span>
+                        <span class="btn-loading" style="display: none;">Invio in corso...</span>
+                    </button>
+                </form>
+
+                <div class="register-footer">
+                    <p><strong>Hai già un account?</strong> 
+                    <a href="#" class="login-toggle-link">Torna al Login</a></p>
                 </div>
             </div>
-            <?php endif; ?>
+        </div>
+        
+        <div class="assistance-box">
+            <div class="assistance-icon">📞</div>
+            <h3>Assistenza Tecnica</h3>
+            <p><strong>Email:</strong> <a href="mailto:tecnica@naval.it">tecnica@naval.it</a></p>
+            <p>Per problemi di accesso, richieste di registrazione o supporto tecnico</p>
         </div>
 
     <?php else: ?>
-        <!-- SEZIONE DASHBOARD UTENTE -->
+        <!-- DASHBOARD UTENTE SEMPLIFICATA -->
         <div class="naval-egt-dashboard">
-            <!-- Header Dashboard -->
+            <!-- Header con info utente -->
             <div class="dashboard-header">
-                <div class="user-welcome">
-                    <h1>Benvenuto, <?php echo esc_html($current_user['nome'] . ' ' . $current_user['cognome']); ?></h1>
-                    <p>Codice Utente: <strong><?php echo esc_html($current_user['user_code']); ?></strong></p>
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <h2>Benvenuto, <?php echo esc_html($current_user['nome'] . ' ' . $current_user['cognome']); ?></h2>
+                        <p>Codice utente: <strong><?php echo esc_html($current_user['user_code']); ?></strong></p>
+                        <?php if (!empty($current_user['ragione_sociale'])): ?>
+                        <p>Azienda: <strong><?php echo esc_html($current_user['ragione_sociale']); ?></strong></p>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <div class="user-actions">
-                    <button type="button" class="btn-secondary" id="refresh-data">
-                        <span class="dashicons dashicons-update"></span> Aggiorna
+                <div class="dashboard-actions">
+                    <button type="button" class="btn-outline" id="logout-btn">
+                        <span>🚪</span> <span class="logout-text">Logout</span>
+                        <span class="logout-loading" style="display: none;">⏳ Uscita...</span>
                     </button>
-                    <button type="button" class="btn-logout" id="logout-btn">
-                        <span class="dashicons dashicons-exit"></span> Logout
-                    </button>
                 </div>
             </div>
 
-            <!-- Statistiche Utente -->
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <span class="dashicons dashicons-media-default"></span>
+            <!-- Scheda Anagrafica Completa -->
+            <div class="dashboard-content">
+                <div class="user-profile-section">
+                    <div class="section-header">
+                        <h3>📋 Scheda Anagrafica Completa</h3>
                     </div>
-                    <div class="stat-content">
-                        <h3 id="total-files-count">0</h3>
-                        <p>File Totali</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <span class="dashicons dashicons-chart-pie"></span>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="total-storage-size">0 MB</h3>
-                        <p>Spazio Utilizzato</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <span class="dashicons dashicons-upload"></span>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="last-upload-date">Mai</h3>
-                        <p>Ultimo Upload</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabs Dashboard -->
-            <div class="dashboard-tabs">
-                <button type="button" class="dashboard-tab active" data-tab="files">
-                    <span class="dashicons dashicons-media-default"></span> I Miei File
-                </button>
-                <button type="button" class="dashboard-tab" data-tab="upload">
-                    <span class="dashicons dashicons-upload"></span> Carica File
-                </button>
-                <button type="button" class="dashboard-tab" data-tab="activity">
-                    <span class="dashicons dashicons-clock"></span> Attività
-                </button>
-                <button type="button" class="dashboard-tab" data-tab="profile">
-                    <span class="dashicons dashicons-admin-users"></span> Profilo
-                </button>
-            </div>
-
-            <!-- TAB FILES -->
-            <div id="tab-files" class="dashboard-tab-content active">
-                <div class="tab-header">
-                    <h3>I Miei File</h3>
-                    <div class="tab-actions">
-                        <div class="search-box">
-                            <input type="text" id="files-search" placeholder="Cerca file...">
-                            <span class="dashicons dashicons-search"></span>
+                    <div class="profile-grid">
+                        <div class="profile-item">
+                            <label>Nome Completo:</label>
+                            <span><?php echo esc_html($current_user['nome'] . ' ' . $current_user['cognome']); ?></span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="files-container">
-                    <div id="files-list" class="files-grid">
-                        <!-- File popolati via AJAX -->
-                    </div>
-                    
-                    <div id="files-pagination" class="pagination-container">
-                        <!-- Paginazione popolata via AJAX -->
-                    </div>
-                </div>
-
-                <div id="no-files-message" class="empty-state" style="display: none;">
-                    <span class="dashicons dashicons-media-default"></span>
-                    <h4>Nessun file trovato</h4>
-                    <p>Non hai ancora caricato nessun file. Usa la sezione "Carica File" per iniziare.</p>
-                </div>
-            </div>
-
-            <!-- TAB UPLOAD -->
-            <div id="tab-upload" class="dashboard-tab-content">
-                <div class="tab-header">
-                    <h3>Carica File</h3>
-                </div>
-
-                <div class="upload-section">
-                    <form id="files-upload-form" enctype="multipart/form-data">
-                        <?php wp_nonce_field('naval_egt_nonce', 'nonce'); ?>
-                        <input type="hidden" name="naval_action" value="upload_file">
-
-                        <div class="upload-area" id="upload-drop-zone">
-                            <div class="upload-icon">
-                                <span class="dashicons dashicons-cloud-upload"></span>
-                            </div>
-                            <div class="upload-text">
-                                <h4>Trascina i file qui o clicca per selezionare</h4>
-                                <p>Formati supportati: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, DWG, DXF, ZIP, RAR</p>
-                                <small>Dimensione massima: 20MB per file</small>
-                            </div>
-                            <input type="file" id="files-input" name="files[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.dwg,.dxf,.zip,.rar" style="display: none;">
+                        <div class="profile-item">
+                            <label>Codice Utente:</label>
+                            <span class="user-code"><?php echo esc_html($current_user['user_code']); ?></span>
                         </div>
-
-                        <div id="upload-progress" class="upload-progress" style="display: none;">
-                            <div class="progress-bar">
-                                <div class="progress-fill"></div>
-                            </div>
-                            <div class="progress-text">
-                                <span id="progress-message">Caricamento in corso...</span>
-                                <span id="progress-percentage">0%</span>
-                            </div>
+                        <div class="profile-item">
+                            <label>Email:</label>
+                            <span><?php echo esc_html($current_user['email']); ?></span>
                         </div>
-
-                        <div id="selected-files" class="selected-files"></div>
-
-                        <button type="submit" id="upload-submit" class="btn-primary" style="display: none;">
-                            <span class="dashicons dashicons-upload"></span> Carica File Selezionati
-                        </button>
-                    </form>
-                </div>
-
-                <div class="upload-info">
-                    <h4>📋 Informazioni Upload</h4>
-                    <ul>
-                        <li><strong>File multipli:</strong> Puoi selezionare e caricare più file contemporaneamente</li>
-                        <li><strong>Dimensione massima:</strong> 20MB per singolo file</li>
-                        <li><strong>Formati supportati:</strong> Documenti, immagini, file CAD e archivi</li>
-                        <li><strong>Sicurezza:</strong> Tutti i file sono archiviati in modo sicuro e privato</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- TAB ACTIVITY -->
-            <div id="tab-activity" class="dashboard-tab-content">
-                <div class="tab-header">
-                    <h3>Storico Attività</h3>
-                    <div class="tab-actions">
-                        <button type="button" class="btn-secondary" id="refresh-activity">
-                            <span class="dashicons dashicons-update"></span> Aggiorna
-                        </button>
-                    </div>
-                </div>
-
-                <div class="activity-container">
-                    <div id="activity-list" class="activity-timeline">
-                        <!-- Attività popolate via AJAX -->
-                    </div>
-                    
-                    <div id="activity-pagination" class="pagination-container">
-                        <!-- Paginazione attività -->
-                    </div>
-                </div>
-
-                <div id="no-activity-message" class="empty-state" style="display: none;">
-                    <span class="dashicons dashicons-clock"></span>
-                    <h4>Nessuna attività registrata</h4>
-                    <p>Le tue attività verranno mostrate qui quando inizierai ad utilizzare l'area riservata.</p>
-                </div>
-            </div>
-
-            <!-- TAB PROFILE -->
-            <div id="tab-profile" class="dashboard-tab-content">
-                <div class="tab-header">
-                    <h3>Il Mio Profilo</h3>
-                </div>
-
-                <div class="profile-section">
-                    <div class="profile-card">
-                        <div class="profile-avatar">
-                            <span class="dashicons dashicons-admin-users"></span>
-                        </div>
-                        <div class="profile-info">
-                            <h4><?php echo esc_html($current_user['nome'] . ' ' . $current_user['cognome']); ?></h4>
-                            <p class="profile-email"><?php echo esc_html($current_user['email']); ?></p>
-                            <p class="profile-code">Codice: <strong><?php echo esc_html($current_user['user_code']); ?></strong></p>
-                        </div>
-                    </div>
-
-                    <div class="profile-details">
-                        <div class="detail-row">
+                        <div class="profile-item">
                             <label>Username:</label>
                             <span><?php echo esc_html($current_user['username']); ?></span>
                         </div>
                         <?php if (!empty($current_user['telefono'])): ?>
-                        <div class="detail-row">
+                        <div class="profile-item">
                             <label>Telefono:</label>
                             <span><?php echo esc_html($current_user['telefono']); ?></span>
                         </div>
                         <?php endif; ?>
                         <?php if (!empty($current_user['ragione_sociale'])): ?>
-                        <div class="detail-row">
-                            <label>Azienda:</label>
+                        <div class="profile-item">
+                            <label>Ragione Sociale:</label>
                             <span><?php echo esc_html($current_user['ragione_sociale']); ?></span>
                         </div>
                         <?php endif; ?>
                         <?php if (!empty($current_user['partita_iva'])): ?>
-                        <div class="detail-row">
+                        <div class="profile-item">
                             <label>Partita IVA:</label>
                             <span><?php echo esc_html($current_user['partita_iva']); ?></span>
                         </div>
                         <?php endif; ?>
-                        <div class="detail-row">
+                        <div class="profile-item">
                             <label>Status Account:</label>
                             <span class="status-badge status-<?php echo strtolower($current_user['status']); ?>">
                                 <?php echo esc_html($current_user['status']); ?>
                             </span>
                         </div>
-                        <div class="detail-row">
-                            <label>Registrato il:</label>
-                            <span><?php echo mysql2date('d/m/Y', $current_user['created_at']); ?></span>
+                        <div class="profile-item">
+                            <label>Data Registrazione:</label>
+                            <span><?php echo mysql2date('d/m/Y H:i', $current_user['created_at']); ?></span>
                         </div>
+                        <?php if (!empty($current_user['last_login'])): ?>
+                        <div class="profile-item">
+                            <label>Ultimo Accesso:</label>
+                            <span><?php echo mysql2date('d/m/Y H:i', $current_user['last_login']); ?></span>
+                        </div>
+                        <?php endif; ?>
                     </div>
+                </div>
 
-                    <div class="profile-actions">
-                        <p><strong>Serve assistenza?</strong></p>
-                        <p>Per modifiche ai dati del profilo o supporto tecnico, contatta:</p>
-                        <p><a href="mailto:tecnica@naval.it" class="btn-secondary">
-                            <span class="dashicons dashicons-email"></span> tecnica@naval.it
-                        </a></p>
+                <!-- Link Dropbox -->
+                <div class="dropbox-section">
+                    <div class="section-header">
+                        <h3>🗂️ Cartella Dropbox Assegnata</h3>
+                    </div>
+                    <div class="dropbox-info">
+                        <?php 
+                        $dropbox_folder_link = '';
+                        if (!empty($current_user['dropbox_folder'])) {
+                            if (strpos($current_user['dropbox_folder'], 'http') === false) {
+                                $dropbox_folder_link = 'https://www.dropbox.com/home' . $current_user['dropbox_folder'];
+                            } else {
+                                $dropbox_folder_link = $current_user['dropbox_folder'];
+                            }
+                        }
+                        ?>
+                        
+                        <?php if (!empty($dropbox_folder_link)): ?>
+                        <div class="dropbox-card">
+                            <div class="dropbox-icon">📁</div>
+                            <div class="dropbox-details">
+                                <h4>La tua cartella personale</h4>
+                                <p>Accedi alla cartella Dropbox dedicata per scaricare e visualizzare i tuoi documenti</p>
+                                <a href="<?php echo esc_url($dropbox_folder_link); ?>" target="_blank" class="dropbox-link">
+                                    <span>🔗</span> Apri Cartella Dropbox
+                                </a>
+                            </div>
+                        </div>
+                        <?php else: ?>
+                        <div class="dropbox-card disabled">
+                            <div class="dropbox-icon">📁</div>
+                            <div class="dropbox-details">
+                                <h4>Cartella non configurata</h4>
+                                <p>La cartella Dropbox non è ancora stata configurata per il tuo account. Contatta il supporto tecnico per l'attivazione.</p>
+                                <a href="mailto:tecnica@naval.it" class="support-link">
+                                    <span>📧</span> Contatta Supporto
+                                </a>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Supporto Tecnico -->
+                <div class="support-section">
+                    <div class="section-header">
+                        <h3>💡 Supporto e Assistenza</h3>
+                    </div>
+                    <div class="support-info">
+                        <p>Per qualsiasi necessità o richiesta di assistenza, non esitare a contattarci:</p>
+                        <div class="support-contacts">
+                            <div class="contact-item">
+                                <strong>📧 Email:</strong> <a href="mailto:tecnica@naval.it">tecnica@naval.it</a>
+                            </div>
+                            <div class="contact-item">
+                                <strong>🏢 Sede:</strong> Via Pietro Castellino, 45 - 80128 Napoli (NA)
+                            </div>
+                            <div class="contact-item">
+                                <strong>🌐 Web:</strong> <a href="https://naval.vjformazione.it" target="_blank">naval.vjformazione.it</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     <?php endif; ?>
-
-    <!-- Modal per visualizzazione file -->
-    <div id="file-modal" class="naval-modal" style="display: none;">
-        <div class="modal-overlay"></div>
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 id="modal-file-title">Dettagli File</h3>
-                <button type="button" class="modal-close">×</button>
-            </div>
-            <div class="modal-body">
-                <div id="file-details" class="file-details">
-                    <!-- Dettagli file popolati via JS -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-primary" id="modal-download-btn">
-                    <span class="dashicons dashicons-download"></span> Scarica
-                </button>
-                <button type="button" class="btn-danger" id="modal-delete-btn">
-                    <span class="dashicons dashicons-trash"></span> Elimina
-                </button>
-                <button type="button" class="btn-secondary modal-close">Chiudi</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast notifications -->
-    <div id="toast-container" class="toast-container"></div>
 </div>
 
 <style>
-/* Stili CSS per l'Area Riservata */
 .naval-egt-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #333;
 }
 
-/* === SEZIONE AUTENTICAZIONE === */
-.naval-egt-auth-section {
-    max-width: 500px;
-    margin: 0 auto;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    overflow: hidden;
+.assistance-box {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    margin-top: 30px;
+    transition: transform 0.3s ease;
 }
 
-.auth-tabs {
-    display: flex;
-    background: #f8f9fa;
+.assistance-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
-.auth-tab {
-    flex: 1;
-    padding: 15px 20px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
+.assistance-box .assistance-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.assistance-box h3 {
+    color: #1e3a8a;
+    margin: 0 0 15px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.assistance-box a {
+    color: #3b82f6;
+    text-decoration: none;
     font-weight: 600;
-    color: #666;
+}
+
+.assistance-box a:hover {
+    text-decoration: underline;
+}
+
+.forms-section {
+    margin-bottom: 30px;
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 8px;
-    transition: all 0.3s;
+    width: 100%;
 }
 
-.auth-tab.active {
-    background: #fff;
-    color: #0073aa;
-    border-bottom: 3px solid #0073aa;
+.login-box,
+.register-box {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    width: 100%;
 }
 
-.auth-tab:hover:not(.active) {
-    background: #e9ecef;
+.login-header,
+.register-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    padding: 30px;
+    text-align: center;
+    border-bottom: 2px solid #e2e8f0;
 }
 
-.auth-tab-content {
-    display: none;
-    padding: 0;
+.login-header .login-icon,
+.register-header .register-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
 }
 
-.auth-tab-content.active {
-    display: block;
+.login-header h3,
+.register-header h3 {
+    margin: 0;
+    color: #1e3a8a;
+    font-size: 24px;
+    font-weight: 700;
 }
 
-.auth-card {
+form {
     padding: 40px;
 }
 
-.auth-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.auth-header h2 {
-    margin: 0 0 10px 0;
-    color: #333;
-    font-size: 24px;
-}
-
-.auth-header p {
-    margin: 0;
-    color: #666;
-    font-size: 14px;
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    margin-bottom: 25px;
 }
 
-.form-group label {
+label {
+    display: block;
+    margin-bottom: 8px;
     font-weight: 600;
-    color: #333;
-    font-size: 14px;
+    color: #374151;
+    font-size: 15px;
 }
 
-.input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-icon {
-    position: absolute;
-    left: 12px;
-    color: #666;
-    z-index: 2;
-}
-
-.form-group input {
-    padding: 12px 12px 12px 40px;
-    border: 2px solid #e1e5e9;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.3s;
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+textarea {
     width: 100%;
+    padding: 16px 20px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
     box-sizing: border-box;
+    background: #fafafa;
 }
 
-.form-group input:focus {
+textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+input:focus,
+textarea:focus {
     outline: none;
-    border-color: #0073aa;
-    box-shadow: 0 0 0 3px rgba(0,115,170,0.1);
-}
-
-.toggle-password {
-    position: absolute;
-    right: 12px;
-    background: none;
-    border: none;
-    color: #666;
-    cursor: pointer;
-    padding: 0;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
 .checkbox-group {
@@ -595,72 +419,31 @@ $public_info = Naval_EGT_Public::get_public_info();
     gap: 12px;
 }
 
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.checkmark {
-    position: relative;
-    height: 18px;
-    width: 18px;
-    background-color: #eee;
-    border-radius: 4px;
-    border: 2px solid #ddd;
-    transition: all 0.3s;
-}
-
-.checkbox-label input:checked ~ .checkmark {
-    background-color: #0073aa;
-    border-color: #0073aa;
-}
-
-.checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-    left: 5px;
-    top: 2px;
-    width: 4px;
-    height: 8px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.checkbox-label input:checked ~ .checkmark:after {
-    display: block;
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    transform: scale(1.2);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #0073aa, #005a87);
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     color: white;
     border: none;
-    padding: 15px 30px;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 18px 30px;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 16px;
+    width: 100%;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .btn-primary:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,115,170,0.3);
+    box-shadow: 0 8px 25px rgba(30, 58, 138, 0.4);
 }
 
 .btn-primary:disabled {
@@ -669,827 +452,342 @@ $public_info = Naval_EGT_Public::get_public_info();
     transform: none;
 }
 
-.btn-full-width {
-    width: 100%;
-}
-
-.btn-loading {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.auth-footer {
+.login-footer,
+.register-footer {
+    padding: 25px 40px;
+    background: #f8fafc;
+    border-top: 2px solid #e2e8f0;
     text-align: center;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
 }
 
-.auth-footer p {
-    margin: 0;
-    font-size: 14px;
-    color: #666;
-}
-
-.auth-footer a {
-    color: #0073aa;
+.register-toggle-link,
+.login-toggle-link {
+    color: #3b82f6;
     text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-.auth-footer a:hover {
+.register-toggle-link:hover,
+.login-toggle-link:hover {
     text-decoration: underline;
 }
 
-.form-section-title {
-    margin: 20px 0 10px 0;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-}
-
-.form-section-title h4 {
-    margin: 0;
-    color: #333;
-    font-size: 16px;
-}
-
-.form-group small {
-    color: #666;
-    font-size: 13px;
-    margin-top: -5px;
-}
-
-/* === DASHBOARD UTENTE === */
 .naval-egt-dashboard {
-    background: #f8f9fa;
-    border-radius: 12px;
+    background: white;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.05);
 }
 
 .dashboard-header {
-    background: linear-gradient(135deg, #0073aa, #005a87);
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
     color: white;
-    padding: 30px;
+    padding: 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
 }
 
-.user-welcome h1 {
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.user-avatar {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    backdrop-filter: blur(10px);
+}
+
+.user-details h2 {
     margin: 0 0 8px 0;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 800;
 }
 
-.user-welcome p {
-    margin: 0;
+.user-details p {
+    margin: 4px 0;
     opacity: 0.9;
     font-size: 16px;
 }
 
-.user-actions {
+.dashboard-actions {
     display: flex;
-    gap: 12px;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
-.btn-secondary {
-    background: rgba(255,255,255,0.2);
+.btn-outline {
+    background: transparent;
     color: white;
-    border: 1px solid rgba(255,255,255,0.3);
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 14px;
+    border: 2px solid #ef4444;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 6px;
-    text-decoration: none;
+    gap: 8px;
 }
 
-.btn-secondary:hover {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-1px);
-}
-
-.btn-logout {
-    background: rgba(220,50,50,0.8);
-    color: white;
-    border: 1px solid rgba(220,50,50,0.5);
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-logout:hover {
-    background: rgba(220,50,50,1);
-    transform: translateY(-1px);
-}
-
-.dashboard-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    padding: 30px;
-    background: white;
-}
-
-.stat-card {
-    background: #fff;
-    border: 1px solid #e1e5e9;
-    border-radius: 12px;
-    padding: 25px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    transition: all 0.3s;
-}
-
-.stat-card:hover {
+.btn-outline:hover:not(:disabled) {
+    background: #ef4444;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
 }
 
-.stat-icon {
-    font-size: 32px;
-    color: #0073aa;
-    opacity: 0.8;
+.btn-outline:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
 }
 
-.stat-content h3 {
-    margin: 0 0 5px 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: #333;
+.dashboard-content {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
 }
 
-.stat-content p {
+.user-profile-section,
+.dropbox-section,
+.support-section {
+    background: white;
+    border: 2px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 15px;
+}
+
+.section-header h3 {
     margin: 0;
-    color: #666;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.profile-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+}
+
+.profile-item label {
+    font-weight: 600;
+    color: #6b7280;
     font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.profile-item span {
+    color: #1f2937;
+    font-size: 16px;
     font-weight: 500;
 }
 
-.dashboard-tabs {
-    display: flex;
-    background: #e9ecef;
-    padding: 0;
-    margin: 0;
-    border-top: 1px solid #dee2e6;
-}
-
-.dashboard-tab {
-    flex: 1;
-    padding: 18px 20px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-weight: 600;
-    color: #666;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s;
-    font-size: 14px;
-}
-
-.dashboard-tab.active {
-    background: #fff;
-    color: #0073aa;
-    border-bottom: 3px solid #0073aa;
-}
-
-.dashboard-tab:hover:not(.active) {
-    background: #dee2e6;
-    color: #333;
-}
-
-.dashboard-tab-content {
-    display: none;
-    background: white;
-    padding: 30px;
-    min-height: 500px;
-}
-
-.dashboard-tab-content.active {
-    display: block;
-}
-
-.tab-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f1f3f4;
-}
-
-.tab-header h3 {
-    margin: 0;
-    color: #333;
-    font-size: 20px;
-}
-
-.tab-actions {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-.search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-box input {
-    padding: 10px 40px 10px 12px;
-    border: 2px solid #e1e5e9;
-    border-radius: 6px;
-    font-size: 14px;
-    width: 250px;
-}
-
-.search-box .dashicons {
-    position: absolute;
-    right: 12px;
-    color: #666;
-}
-
-/* === FILES SECTION === */
-.files-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.file-card {
-    background: #fff;
-    border: 2px solid #f1f3f4;
-    border-radius: 12px;
-    padding: 20px;
-    transition: all 0.3s;
-    cursor: pointer;
-}
-
-.file-card:hover {
-    border-color: #0073aa;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}
-
-.file-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 15px;
-}
-
-.file-icon {
-    font-size: 24px;
-    color: #0073aa;
-}
-
-.file-name {
-    font-weight: 600;
-    color: #333;
-    font-size: 16px;
-    word-break: break-word;
-}
-
-.file-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    color: #666;
-}
-
-.file-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 15px;
-}
-
-.btn-small {
+.user-code {
+    font-family: monospace;
+    background: #e5e7eb;
     padding: 6px 12px;
-    font-size: 12px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.2s;
-}
-
-.btn-download {
-    background: #28a745;
-    color: white;
-}
-
-.btn-download:hover {
-    background: #218838;
-}
-
-.btn-danger {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c82333;
-}
-
-/* === UPLOAD SECTION === */
-.upload-area {
-    border: 3px dashed #dee2e6;
-    border-radius: 12px;
-    padding: 60px 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: #f8f9fa;
-}
-
-.upload-area:hover,
-.upload-area.drag-over {
-    border-color: #0073aa;
-    background: rgba(0,115,170,0.05);
-}
-
-.upload-icon {
-    font-size: 48px;
-    color: #0073aa;
-    margin-bottom: 20px;
-}
-
-.upload-text h4 {
-    margin: 0 0 10px 0;
-    color: #333;
-    font-size: 18px;
-}
-
-.upload-text p {
-    margin: 0 0 5px 0;
-    color: #666;
-}
-
-.upload-text small {
-    color: #999;
-    font-size: 13px;
-}
-
-.upload-progress {
-    margin: 20px 0;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #0073aa, #005a87);
-    width: 0%;
-    transition: width 0.3s;
-}
-
-.progress-text {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    color: #666;
-}
-
-.selected-files {
-    margin: 20px 0;
-}
-
-.selected-file {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
     border-radius: 6px;
-    margin-bottom: 8px;
-}
-
-.file-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.remove-file {
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.upload-info {
-    margin-top: 30px;
-    padding: 20px;
-    background: #e7f3ff;
-    border-left: 4px solid #0073aa;
-    border-radius: 6px;
-}
-
-.upload-info h4 {
-    margin: 0 0 15px 0;
-    color: #333;
-}
-
-.upload-info ul {
-    margin: 0;
-    padding-left: 20px;
-}
-
-.upload-info li {
-    margin-bottom: 8px;
-    color: #666;
-}
-
-/* === ACTIVITY SECTION === */
-.activity-timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.activity-item {
-    background: #fff;
-    border: 1px solid #e1e5e9;
-    border-radius: 8px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.activity-icon {
-    font-size: 20px;
-    color: #0073aa;
-    background: rgba(0,115,170,0.1);
-    padding: 12px;
-    border-radius: 50%;
-}
-
-.activity-content {
-    flex: 1;
-}
-
-.activity-title {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.activity-description {
-    color: #666;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-.activity-meta {
-    font-size: 13px;
-    color: #999;
-}
-
-/* === PROFILE SECTION === */
-.profile-section {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 30px;
-    align-items: start;
-}
-
-.profile-card {
-    background: #fff;
-    border: 1px solid #e1e5e9;
-    border-radius: 12px;
-    padding: 30px;
-    text-align: center;
-}
-
-.profile-avatar {
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, #0073aa, #005a87);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px auto;
-    font-size: 32px;
-    color: white;
-}
-
-.profile-card h4 {
-    margin: 0 0 8px 0;
-    color: #333;
-    font-size: 18px;
-}
-
-.profile-email {
-    color: #666;
-    margin: 0 0 8px 0;
-    font-size: 14px;
-}
-
-.profile-code {
-    color: #0073aa;
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.profile-details {
-    background: #fff;
-    border: 1px solid #e1e5e9;
-    border-radius: 12px;
-    padding: 30px;
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #f1f3f4;
-}
-
-.detail-row:last-child {
-    border-bottom: none;
-}
-
-.detail-row label {
-    font-weight: 600;
-    color: #333;
-}
-
-.detail-row span {
-    color: #666;
+    font-weight: 700;
+    color: #1e3a8a;
 }
 
 .status-badge {
-    padding: 4px 12px;
+    display: inline-block;
+    padding: 6px 16px;
     border-radius: 20px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
+    width: fit-content;
+    letter-spacing: 0.5px;
 }
 
 .status-attivo {
-    background: #d4edda;
-    color: #155724;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
 }
 
 .status-sospeso {
-    background: #f8d7da;
-    color: #721c24;
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
 }
 
-.profile-actions {
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.profile-actions p {
-    margin: 0 0 10px 0;
-    color: #666;
-}
-
-/* === MODAL === */
-.naval-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
+.dropbox-card {
     display: flex;
     align-items: center;
-    justify-content: center;
-}
-
-.modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-}
-
-.modal-container {
-    background: white;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow: hidden;
-    position: relative;
-    z-index: 10000;
-}
-
-.modal-header {
-    padding: 20px 30px;
-    border-bottom: 1px solid #e1e5e9;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #333;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-body {
+    gap: 25px;
     padding: 30px;
-    max-height: 60vh;
-    overflow-y: auto;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #0ea5e9;
+    border-radius: 16px;
+    transition: all 0.3s ease;
 }
 
-.modal-footer {
-    padding: 20px 30px;
-    border-top: 1px solid #e1e5e9;
+.dropbox-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(14, 165, 233, 0.2);
+}
+
+.dropbox-card.disabled {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: #cbd5e1;
+    opacity: 0.8;
+}
+
+.dropbox-icon {
+    font-size: 48px;
+    width: 80px;
+    height: 80px;
+    background: white;
+    border-radius: 50%;
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
+    color: #0ea5e9;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
 }
 
-.file-details {
+.dropbox-details h4 {
+    margin: 0 0 10px 0;
+    color: #1e3a8a;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.dropbox-details p {
+    margin: 0 0 15px 0;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.dropbox-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #0ea5e9;
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.dropbox-link:hover {
+    background: #0284c7;
+    transform: translateX(5px);
+}
+
+.support-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #6b7280;
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.support-link:hover {
+    background: #4b5563;
+    transform: translateX(5px);
+}
+
+.support-info p {
+    margin-bottom: 20px;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.support-contacts {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    padding: 25px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
 }
 
-.file-detail-row {
+.contact-item {
+    font-size: 16px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #f1f3f4;
-}
-
-.file-detail-row:last-child {
-    border-bottom: none;
-}
-
-/* === EMPTY STATES === */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #666;
-}
-
-.empty-state .dashicons {
-    font-size: 64px;
-    opacity: 0.3;
-    margin-bottom: 20px;
-}
-
-.empty-state h4 {
-    margin: 0 0 10px 0;
-    color: #333;
-}
-
-.empty-state p {
-    margin: 0;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-/* === PAGINATION === */
-.pagination-container {
-    display: flex;
-    justify-content: center;
     align-items: center;
     gap: 10px;
-    margin-top: 30px;
 }
 
-.pagination-btn {
-    padding: 8px 12px;
-    border: 1px solid #dee2e6;
-    background: white;
-    color: #333;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
+.contact-item strong {
+    color: #1e3a8a;
 }
 
-.pagination-btn:hover:not(:disabled) {
-    background: #0073aa;
-    color: white;
-    border-color: #0073aa;
+.contact-item a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
 }
 
-.pagination-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.contact-item a:hover {
+    text-decoration: underline;
 }
 
-.pagination-btn.active {
-    background: #0073aa;
-    color: white;
-    border-color: #0073aa;
-}
-
-/* === TOAST NOTIFICATIONS === */
-.toast-container {
+.toast {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast {
-    min-width: 300px;
-    padding: 15px 20px;
-    border-radius: 8px;
+    padding: 15px 25px;
+    border-radius: 10px;
     color: white;
-    font-weight: 500;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease-out;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-weight: 600;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
 }
 
 .toast-success {
-    background: #28a745;
+    background: linear-gradient(135deg, #10b981, #059669);
 }
 
 .toast-error {
-    background: #dc3545;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
 .toast-info {
-    background: #17a2b8;
-}
-
-.toast-warning {
-    background: #ffc107;
-    color: #333;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
 @keyframes slideIn {
@@ -1503,186 +801,128 @@ $public_info = Naval_EGT_Public::get_public_info();
     }
 }
 
-/* === RESPONSIVE === */
-@media (max-width: 768px) {
-    .naval-egt-container {
-        padding: 10px;
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
     }
-    
-    .dashboard-header {
-        flex-direction: column;
-        gap: 20px;
-        text-align: center;
-    }
-    
-    .dashboard-stats {
-        grid-template-columns: 1fr;
-        padding: 20px;
-    }
-    
-    .dashboard-tabs {
-        flex-wrap: wrap;
-    }
-    
-    .dashboard-tab {
-        flex: 1 1 50%;
-        min-width: 120px;
-    }
-    
-    .tab-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
-    }
-    
-    .search-box input {
-        width: 100%;
-    }
-    
-    .files-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .profile-section {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .auth-card {
-        padding: 20px;
-    }
-    
-    .modal-container {
-        width: 95%;
-        margin: 20px;
-    }
-    
-    .modal-header,
-    .modal-body,
-    .modal-footer {
-        padding: 15px 20px;
+    to {
+        transform: translateX(100%);
+        opacity: 0;
     }
 }
 
-@media (max-width: 480px) {
-    .user-actions {
+@media (max-width: 768px) {
+    .naval-egt-container {
+        padding: 15px;
+    }
+    
+    .dashboard-header {
+        padding: 25px;
         flex-direction: column;
+        text-align: center;
+    }
+    
+    .user-info {
+        flex-direction: column;
+    }
+    
+    .dashboard-content {
+        padding: 25px;
+    }
+    
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dropbox-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .support-contacts {
+        text-align: center;
+    }
+    
+    .contact-item {
+        justify-content: center;
+    }
+
+    .forms-section {
         width: 100%;
-    }
-    
-    .dashboard-tab {
-        flex: 1 1 100%;
-        font-size: 12px;
-        padding: 12px 8px;
-    }
-    
-    .toast-container {
-        left: 10px;
-        right: 10px;
-        top: 10px;
-    }
-    
-    .toast {
-        min-width: auto;
     }
 }
 </style>
 
 <script>
-// JavaScript per l'Area Riservata - VERSIONE CORRETTA
 document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
     const container = document.getElementById('naval-egt-area-riservata');
-    if (!container) return;
-    
-    // Variabili globali
-    let currentPage = 1;
-    let currentActivityPage = 1;
-    let isLoggedIn = <?php echo $is_logged_in ? 'true' : 'false'; ?>;
-    
-    // Definisci navalEgtAjax se non esiste
-    if (typeof navalEgtAjax === 'undefined') {
-        window.navalEgtAjax = {
-            ajax_url: '<?php echo admin_url("admin-ajax.php"); ?>',
-            nonce: '<?php echo wp_create_nonce("naval_egt_nonce"); ?>'
-        };
+    if (!container) {
+        console.error('Naval EGT: Container non trovato');
+        return;
     }
     
-    // Inizializzazione
-    if (isLoggedIn) {
+    const CONFIG = {
+        isLoggedIn: <?php echo $is_logged_in ? 'true' : 'false'; ?>,
+        ajaxUrl: '<?php echo admin_url("admin-ajax.php"); ?>',
+        nonce: '<?php echo wp_create_nonce("naval_egt_nonce"); ?>',
+        currentUrl: window.location.href
+    };
+    
+    console.log('Naval EGT inizializzato:', CONFIG);
+    
+    if (CONFIG.isLoggedIn) {
         initDashboard();
     } else {
         initAuth();
     }
     
-    // === FUNZIONI AUTENTICAZIONE ===
     function initAuth() {
-        // Gestione tab autenticazione
-        const authTabs = document.querySelectorAll('.auth-tab');
-        const authContents = document.querySelectorAll('.auth-tab-content');
-        
-        authTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const targetTab = tab.dataset.tab;
-                
-                authTabs.forEach(t => t.classList.remove('active'));
-                authContents.forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(`tab-${targetTab}`).classList.add('active');
-            });
-        });
-        
-        // Gestione toggle password
-        const toggleButtons = document.querySelectorAll('.toggle-password');
-        toggleButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const input = btn.previousElementSibling;
-                const icon = btn.querySelector('.dashicons');
-                
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    icon.classList.remove('dashicons-visibility');
-                    icon.classList.add('dashicons-hidden');
-                } else {
-                    input.type = 'password';
-                    icon.classList.remove('dashicons-hidden');
-                    icon.classList.add('dashicons-visibility');
-                }
-            });
-        });
-        
-        // Gestione form login
         const loginForm = document.getElementById('naval-login-form');
+        const registerForm = document.getElementById('naval-register-form');
+        const loginToggle = document.querySelector('.login-toggle-link');
+        const registerToggle = document.querySelector('.register-toggle-link');
+        
         if (loginForm) {
             loginForm.addEventListener('submit', handleLogin);
         }
         
-        // Gestione form registrazione
-        const registerForm = document.getElementById('naval-register-form');
         if (registerForm) {
             registerForm.addEventListener('submit', handleRegister);
         }
         
-        // Validazione password in tempo reale
-        const passwordConfirm = document.getElementById('reg-password-confirm');
-        if (passwordConfirm) {
-            passwordConfirm.addEventListener('input', validatePasswordMatch);
+        if (registerToggle) {
+            registerToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                showRegisterForm();
+            });
+        }
+        
+        if (loginToggle) {
+            loginToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                showLoginForm();
+            });
         }
     }
     
-    function validatePasswordMatch() {
-        const password = document.getElementById('reg-password').value;
-        const passwordConfirm = document.getElementById('reg-password-confirm').value;
+    function showRegisterForm() {
+        const loginBox = document.querySelector('.login-box');
+        const registerBox = document.querySelector('.register-box');
         
-        if (passwordConfirm && password !== passwordConfirm) {
-            document.getElementById('reg-password-confirm').style.borderColor = '#dc3545';
-            showToast('Le password non corrispondono', 'warning');
-        } else {
-            document.getElementById('reg-password-confirm').style.borderColor = '#28a745';
-        }
+        if (loginBox) loginBox.style.display = 'none';
+        if (registerBox) registerBox.style.display = 'block';
+    }
+    
+    function showLoginForm() {
+        const loginBox = document.querySelector('.login-box');
+        const registerBox = document.querySelector('.register-box');
+        
+        if (registerBox) registerBox.style.display = 'none';
+        if (loginBox) loginBox.style.display = 'block';
     }
     
     async function handleLogin(e) {
@@ -1693,21 +933,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnText = submitBtn.querySelector('.btn-text');
         const btnLoading = submitBtn.querySelector('.btn-loading');
         
+        setLoadingState(submitBtn, btnText, btnLoading, true);
+        
         try {
-            // Mostra loading
-            btnText.style.display = 'none';
-            btnLoading.style.display = 'flex';
-            submitBtn.disabled = true;
-            
             const formData = new FormData(form);
             formData.append('action', 'naval_egt_login');
+            formData.append('nonce', CONFIG.nonce);
             
-            const response = await fetch(navalEgtAjax.ajax_url, {
+            console.log('Naval EGT: Invio richiesta login...');
+            
+            const response = await fetch(CONFIG.ajaxUrl, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const responseText = await response.text();
+                console.error('Naval EGT: Non-JSON response:', responseText);
+                throw new Error('Risposta del server non valida');
+            }
+            
             const result = await response.json();
+            console.log('Naval EGT Login Response:', result);
             
             if (result.success) {
                 showToast('Login effettuato con successo!', 'success');
@@ -1717,13 +973,12 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 showToast(result.data || 'Errore durante il login', 'error');
             }
+            
         } catch (error) {
-            showToast('Errore di connessione', 'error');
+            console.error('Naval EGT Login error:', error);
+            showToast(`Errore: ${error.message}`, 'error');
         } finally {
-            // Nascondi loading
-            btnText.style.display = 'block';
-            btnLoading.style.display = 'none';
-            submitBtn.disabled = false;
+            setLoadingState(submitBtn, btnText, btnLoading, false);
         }
     }
     
@@ -1735,686 +990,246 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnText = submitBtn.querySelector('.btn-text');
         const btnLoading = submitBtn.querySelector('.btn-loading');
         
+        // Validazione lato client
+        const password = form.querySelector('#register-password').value;
+        const passwordConfirm = form.querySelector('#register-password-confirm').value;
+        const username = form.querySelector('#register-username').value;
+        const privacyConsent = form.querySelector('#privacy-consent').checked;
+        
+        console.log('Naval EGT: Validazione client-side...');
+        console.log('Naval EGT: Password length:', password.length);
+        console.log('Naval EGT: Username length:', username.length);
+        console.log('Naval EGT: Privacy consent:', privacyConsent);
+        
+        if (password !== passwordConfirm) {
+            showToast('Le password non corrispondono', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showToast('La password deve essere di almeno 6 caratteri', 'error');
+            return;
+        }
+        
+        if (username.length < 4) {
+            showToast('Lo username deve essere di almeno 4 caratteri', 'error');
+            return;
+        }
+        
+        // Validazione username (solo lettere, numeri, punti e trattini)
+        if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+            showToast('Lo username può contenere solo lettere, numeri, punti e trattini', 'error');
+            return;
+        }
+        
+        if (!privacyConsent) {
+            showToast('È necessario accettare la Privacy Policy', 'error');
+            return;
+        }
+        
+        setLoadingState(submitBtn, btnText, btnLoading, true);
+        
         try {
-            // Validazioni client-side
-            const password = form.querySelector('[name="password"]').value;
-            const passwordConfirm = form.querySelector('[name="password_confirm"]').value;
-            
-            if (password !== passwordConfirm) {
-                showToast('Le password non corrispondono', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showToast('La password deve essere di almeno 6 caratteri', 'error');
-                return;
-            }
-            
-            const ragioneSociale = form.querySelector('[name="ragione_sociale"]').value;
-            const partitaIva = form.querySelector('[name="partita_iva"]').value;
-            
-            if (ragioneSociale && !partitaIva) {
-                showToast('La Partita IVA è obbligatoria se specifichi la Ragione Sociale', 'error');
-                return;
-            }
-            
-            const privacyPolicy = form.querySelector('[name="privacy_policy"]').checked;
-            if (!privacyPolicy) {
-                showToast('Devi accettare la Privacy Policy', 'error');
-                return;
-            }
-            
-            // Mostra loading
-            btnText.style.display = 'none';
-            btnLoading.style.display = 'flex';
-            submitBtn.disabled = true;
-            
             const formData = new FormData(form);
-            formData.append('action', 'naval_egt_register');
+            formData.append('action', 'naval_egt_register_request');
+            formData.append('nonce', CONFIG.nonce);
             
-            const response = await fetch(navalEgtAjax.ajax_url, {
+            console.log('Naval EGT: Invio richiesta registrazione...');
+            
+            const response = await fetch(CONFIG.ajaxUrl, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
             
+            console.log('Naval EGT: Response status:', response.status);
+            
+            if (!response.ok) {
+                const responseText = await response.text();
+                console.error('Naval EGT: Response text:', responseText);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const responseText = await response.text();
+                console.error('Naval EGT: Non-JSON response:', responseText);
+                throw new Error('Risposta del server non valida');
+            }
+            
             const result = await response.json();
+            console.log('Naval EGT: Response result:', result);
             
             if (result.success) {
-                showToast(result.data.message, 'success');
+                showToast('Richiesta di registrazione inviata con successo! Ti contatteremo presto.', 'success');
                 form.reset();
-                
-                // Torna al tab login dopo 2 secondi
                 setTimeout(() => {
-                    document.querySelector('.auth-tab[data-tab="login"]').click();
-                }, 2000);
+                    showLoginForm();
+                }, 3000);
             } else {
-                showToast(result.data || 'Errore durante la registrazione', 'error');
+                showToast(result.data || 'Errore durante l\'invio della richiesta', 'error');
             }
+            
         } catch (error) {
-            showToast('Errore di connessione', 'error');
+            console.error('Naval EGT Register error:', error);
+            showToast(`Errore: ${error.message}`, 'error');
         } finally {
-            // Nascondi loading
-            btnText.style.display = 'block';
-            btnLoading.style.display = 'none';
-            submitBtn.disabled = false;
+            setLoadingState(submitBtn, btnText, btnLoading, false);
         }
     }
     
-    // === FUNZIONI DASHBOARD ===
     function initDashboard() {
-        // Gestione tab dashboard
-        const dashboardTabs = document.querySelectorAll('.dashboard-tab');
-        const dashboardContents = document.querySelectorAll('.dashboard-tab-content');
-        
-        dashboardTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const targetTab = tab.dataset.tab;
-                
-                dashboardTabs.forEach(t => t.classList.remove('active'));
-                dashboardContents.forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(`tab-${targetTab}`).classList.add('active');
-                
-                // Carica contenuto specifico del tab
-                switch(targetTab) {
-                    case 'files':
-                        loadUserFiles();
-                        break;
-                    case 'activity':
-                        loadUserActivity();
-                        break;
-                }
-            });
-        });
-        
-        // Gestione logout
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', handleLogout);
         }
-        
-        // Gestione refresh
-        const refreshBtn = document.getElementById('refresh-data');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                loadUserStats();
-                loadUserFiles();
-            });
-        }
-        
-        // Gestione upload
-        initFileUpload();
-        
-        // Carica dati iniziali
-        loadUserStats();
-        loadUserFiles();
     }
     
     async function handleLogout() {
         if (!confirm('Sei sicuro di voler uscire?')) return;
         
+        const logoutBtn = document.getElementById('logout-btn');
+        const logoutText = logoutBtn ? logoutBtn.querySelector('.logout-text') : null;
+        const logoutLoading = logoutBtn ? logoutBtn.querySelector('.logout-loading') : null;
+        
+        if (logoutBtn) {
+            logoutBtn.disabled = true;
+            if (logoutText) logoutText.style.display = 'none';
+            if (logoutLoading) logoutLoading.style.display = 'inline';
+        }
+        
         try {
             const formData = new FormData();
             formData.append('action', 'naval_egt_logout');
-            formData.append('nonce', navalEgtAjax.nonce);
+            formData.append('nonce', CONFIG.nonce);
             
-            const response = await fetch(navalEgtAjax.ajax_url, {
+            const response = await fetch(CONFIG.ajaxUrl, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
             
             const result = await response.json();
             
             if (result.success) {
-                showToast('Logout effettuato con successo', 'success');
+                showToast('Logout completato!', 'success');
+                
+                cleanupUserData();
+                
                 setTimeout(() => {
                     window.location.reload();
                 }, 1000);
+                
+            } else {
+                showToast('Errore logout: ' + (result.data || 'Errore sconosciuto'), 'error');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
             }
+            
         } catch (error) {
+            console.error('Naval EGT Logout error:', error);
             showToast('Errore durante il logout', 'error');
-        }
-    }
-    
-    async function loadUserStats() {
-        try {
-            const formData = new FormData();
-            formData.append('action', 'naval_egt_get_user_stats');
-            formData.append('nonce', navalEgtAjax.nonce);
             
-            const response = await fetch(navalEgtAjax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                const stats = result.data;
-                updateStatsDisplay(stats);
-            }
-        } catch (error) {
-            console.error('Errore caricamento statistiche:', error);
-        }
-    }
-    
-    function updateStatsDisplay(stats) {
-        const totalFiles = document.getElementById('total-files-count');
-        const totalStorage = document.getElementById('total-storage-size');
-        const lastUpload = document.getElementById('last-upload-date');
-        
-        if (totalFiles) totalFiles.textContent = stats.total_files || 0;
-        if (totalStorage) totalStorage.textContent = formatFileSize(stats.total_size || 0);
-        if (lastUpload) {
-            const date = stats.last_upload ? new Date(stats.last_upload).toLocaleDateString('it-IT') : 'Mai';
-            lastUpload.textContent = date;
-        }
-    }
-    
-    async function loadUserFiles() {
-        const filesContainer = document.getElementById('files-list');
-        const noFilesMessage = document.getElementById('no-files-message');
-        const searchQuery = document.getElementById('files-search')?.value || '';
-        
-        try {
-            const formData = new FormData();
-            formData.append('action', 'naval_egt_get_user_files');
-            formData.append('nonce', navalEgtAjax.nonce);
-            formData.append('page', currentPage);
-            formData.append('search', searchQuery);
-            
-            const response = await fetch(navalEgtAjax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                const files = result.data.files;
-                
-                if (files.length === 0) {
-                    if (filesContainer) filesContainer.style.display = 'none';
-                    if (noFilesMessage) noFilesMessage.style.display = 'block';
-                } else {
-                    if (filesContainer) filesContainer.style.display = 'grid';
-                    if (noFilesMessage) noFilesMessage.style.display = 'none';
-                    renderFiles(files);
-                }
-            }
-        } catch (error) {
-            console.error('Errore caricamento file:', error);
-            showToast('Errore nel caricamento dei file', 'error');
-        }
-    }
-    
-    function renderFiles(files) {
-        const container = document.getElementById('files-list');
-        if (!container) return;
-        
-        container.innerHTML = files.map(file => `
-            <div class="file-card" data-file-id="${file.id}">
-                <div class="file-header">
-                    <span class="file-icon dashicons ${getFileIcon(file.name)}"></span>
-                    <div class="file-name">${escapeHtml(file.name)}</div>
-                </div>
-                <div class="file-meta">
-                    <span>${file.size}</span>
-                    <span>${file.date}</span>
-                </div>
-                <div class="file-actions">
-                    <a href="${file.download_url}" class="btn-small btn-download" target="_blank">
-                        <span class="dashicons dashicons-download"></span> Scarica
-                    </a>
-                    <button type="button" class="btn-small btn-danger delete-file-btn" data-file-id="${file.id}">
-                        <span class="dashicons dashicons-trash"></span> Elimina
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-        // Aggiungi event listener per eliminazione
-        container.querySelectorAll('.delete-file-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const fileId = btn.dataset.fileId;
-                deleteFile(fileId);
-            });
-        });
-    }
-    
-    async function deleteFile(fileId) {
-        if (!confirm('Sei sicuro di voler eliminare questo file?')) return;
-        
-        try {
-            const formData = new FormData();
-            formData.append('action', 'naval_egt_delete_file');
-            formData.append('nonce', navalEgtAjax.nonce);
-            formData.append('file_id', fileId);
-            
-            const response = await fetch(navalEgtAjax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast('File eliminato con successo', 'success');
-                loadUserFiles();
-                loadUserStats();
-            } else {
-                showToast(result.data || 'Errore durante l\'eliminazione', 'error');
-            }
-        } catch (error) {
-            showToast('Errore di connessione', 'error');
-        }
-    }
-    
-    async function loadUserActivity() {
-        const activityContainer = document.getElementById('activity-list');
-        const noActivityMessage = document.getElementById('no-activity-message');
-        
-        try {
-            const formData = new FormData();
-            formData.append('action', 'naval_egt_get_user_activity');
-            formData.append('nonce', navalEgtAjax.nonce);
-            formData.append('page', currentActivityPage);
-            
-            const response = await fetch(navalEgtAjax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                const activities = result.data.activities;
-                
-                if (activities.length === 0) {
-                    if (activityContainer) activityContainer.style.display = 'none';
-                    if (noActivityMessage) noActivityMessage.style.display = 'block';
-                } else {
-                    if (activityContainer) activityContainer.style.display = 'flex';
-                    if (noActivityMessage) noActivityMessage.style.display = 'none';
-                    renderActivity(activities);
-                }
-            }
-        } catch (error) {
-            console.error('Errore caricamento attività:', error);
-        }
-    }
-    
-    function renderActivity(activities) {
-        const container = document.getElementById('activity-list');
-        if (!container) return;
-        
-        container.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <div class="activity-icon">
-                    <span class="dashicons ${getActivityIcon(activity.action)}"></span>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-title">${activity.action}</div>
-                    <div class="activity-description">${escapeHtml(activity.description)}</div>
-                    <div class="activity-meta">${activity.date} - IP: ${activity.ip_address}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // === GESTIONE UPLOAD ===
-    function initFileUpload() {
-        const dropZone = document.getElementById('upload-drop-zone');
-        const fileInput = document.getElementById('files-input');
-        const uploadForm = document.getElementById('files-upload-form');
-        
-        if (!dropZone || !fileInput || !uploadForm) return;
-        
-        // Click per aprire file selector
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
-        // Drag & Drop
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-        
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-        });
-        
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            
-            const files = Array.from(e.dataTransfer.files);
-            handleFileSelection(files);
-        });
-        
-        // File input change
-        fileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            handleFileSelection(files);
-        });
-        
-        // Form submit
-        uploadForm.addEventListener('submit', handleFileUpload);
-    }
-    
-    let selectedFiles = [];
-    
-    function handleFileSelection(files) {
-        selectedFiles = [...selectedFiles, ...files];
-        renderSelectedFiles();
-        
-        const uploadSubmit = document.getElementById('upload-submit');
-        if (uploadSubmit && selectedFiles.length > 0) {
-            uploadSubmit.style.display = 'block';
-        }
-    }
-    
-    function renderSelectedFiles() {
-        const container = document.getElementById('selected-files');
-        if (!container) return;
-        
-        container.innerHTML = selectedFiles.map((file, index) => `
-            <div class="selected-file">
-                <div class="file-info">
-                    <span class="dashicons ${getFileIcon(file.name)}"></span>
-                    <span>${escapeHtml(file.name)} (${formatFileSize(file.size)})</span>
-                </div>
-                <button type="button" class="remove-file" data-index="${index}">×</button>
-            </div>
-        `).join('');
-        
-        // Event listener per rimozione file
-        container.querySelectorAll('.remove-file').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const index = parseInt(btn.dataset.index);
-                selectedFiles.splice(index, 1);
-                renderSelectedFiles();
-                
-                if (selectedFiles.length === 0) {
-                    const uploadSubmit = document.getElementById('upload-submit');
-                    if (uploadSubmit) uploadSubmit.style.display = 'none';
-                }
-            });
-        });
-    }
-    
-    async function handleFileUpload(e) {
-        e.preventDefault();
-        
-        if (selectedFiles.length === 0) {
-            showToast('Seleziona almeno un file', 'warning');
-            return;
-        }
-        
-        const uploadProgress = document.getElementById('upload-progress');
-        const progressFill = uploadProgress?.querySelector('.progress-fill');
-        const progressMessage = document.getElementById('progress-message');
-        const progressPercentage = document.getElementById('progress-percentage');
-        const uploadSubmit = document.getElementById('upload-submit');
-        
-        try {
-            if (uploadProgress) uploadProgress.style.display = 'block';
-            if (uploadSubmit) uploadSubmit.disabled = true;
-            
-            const formData = new FormData();
-            formData.append('action', 'naval_egt_upload_file');
-            formData.append('nonce', navalEgtAjax.nonce);
-            
-            selectedFiles.forEach(file => {
-                formData.append('files[]', file);
-            });
-            
-            // Simulazione progresso
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                if (progress < 90) {
-                    progress += Math.random() * 20;
-                    updateProgress(Math.min(progress, 90));
-                }
-            }, 200);
-            
-            const response = await fetch(navalEgtAjax.ajax_url, {
-                method: 'POST',
-                body: formData
-            });
-            
-            clearInterval(progressInterval);
-            updateProgress(100);
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(result.data.message, 'success');
-                
-                // Reset form
-                selectedFiles = [];
-                renderSelectedFiles();
-                const fileInput = document.getElementById('files-input');
-                if (fileInput) fileInput.value = '';
-                if (uploadSubmit) uploadSubmit.style.display = 'none';
-                
-                // Refresh dati
-                loadUserFiles();
-                loadUserStats();
-                
-                // Vai al tab file
-                const filesTab = document.querySelector('.dashboard-tab[data-tab="files"]');
-                if (filesTab) filesTab.click();
-            } else {
-                showToast(result.data || 'Errore durante l\'upload', 'error');
-            }
-        } catch (error) {
-            showToast('Errore di connessione durante l\'upload', 'error');
-        } finally {
+            cleanupUserData();
             setTimeout(() => {
-                if (uploadProgress) uploadProgress.style.display = 'none';
-                if (uploadSubmit) uploadSubmit.disabled = false;
-                updateProgress(0);
-            }, 1000);
-        }
-        
-        function updateProgress(percent) {
-            if (progressFill) progressFill.style.width = percent + '%';
-            if (progressPercentage) progressPercentage.textContent = Math.round(percent) + '%';
+                window.location.reload();
+            }, 1500);
             
-            if (progressMessage) {
-                if (percent < 100) {
-                    progressMessage.textContent = 'Caricamento in corso...';
-                } else {
-                    progressMessage.textContent = 'Upload completato!';
-                }
+        } finally {
+            if (logoutBtn) {
+                setTimeout(() => {
+                    logoutBtn.disabled = false;
+                    if (logoutText) logoutText.style.display = 'inline';
+                    if (logoutLoading) logoutLoading.style.display = 'none';
+                }, 2000);
             }
         }
     }
     
-    // === UTILITY FUNCTIONS ===
-    function getFileIcon(filename) {
-        const ext = filename.toLowerCase().split('.').pop();
-        const iconMap = {
-            'pdf': 'dashicons-pdf',
-            'doc': 'dashicons-media-document',
-            'docx': 'dashicons-media-document',
-            'xls': 'dashicons-media-spreadsheet',
-            'xlsx': 'dashicons-media-spreadsheet',
-            'jpg': 'dashicons-format-image',
-            'jpeg': 'dashicons-format-image',
-            'png': 'dashicons-format-image',
-            'gif': 'dashicons-format-image',
-            'zip': 'dashicons-media-archive',
-            'rar': 'dashicons-media-archive',
-            'dwg': 'dashicons-admin-tools',
-            'dxf': 'dashicons-admin-tools'
-        };
-        return iconMap[ext] || 'dashicons-media-default';
-    }
-    
-    function getActivityIcon(action) {
-        const iconMap = {
-            'Accesso': 'dashicons-unlock',
-            'Disconnessione': 'dashicons-lock',
-            'Caricamento': 'dashicons-upload',
-            'Scaricamento': 'dashicons-download',
-            'Eliminazione': 'dashicons-trash',
-            'Registrazione': 'dashicons-plus'
-        };
-        return iconMap[action] || 'dashicons-admin-generic';
-    }
-    
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-    
-    function escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    }
-    
-    function showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) {
-            // Crea container se non esiste
-            const toastContainer = document.createElement('div');
-            toastContainer.id = 'toast-container';
-            toastContainer.className = 'toast-container';
-            document.body.appendChild(toastContainer);
+    function cleanupUserData() {
+        try {
+            if (typeof(Storage) !== "undefined") {
+                localStorage.removeItem('naval_egt_user');
+                sessionStorage.clear();
+            }
+        } catch (error) {
+            console.warn('Naval EGT: Errore pulizia dati:', error);
         }
+    }
+    
+    function setLoadingState(button, textElement, loadingElement, isLoading) {
+        if (!button) return;
+        
+        button.disabled = isLoading;
+        
+        if (textElement) {
+            textElement.style.display = isLoading ? 'none' : 'inline';
+        }
+        
+        if (loadingElement) {
+            loadingElement.style.display = isLoading ? 'inline' : 'none';
+        }
+    }
+    
+    function showToast(message, type = 'info', duration = 5000) {
+        // Rimuovi toast precedenti dello stesso tipo
+        document.querySelectorAll(`.toast-${type}`).forEach(toast => {
+            toast.remove();
+        });
         
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
+        toast.textContent = message;
         
-        const icon = {
-            'success': 'dashicons-yes-alt',
-            'error': 'dashicons-dismiss',
-            'warning': 'dashicons-warning',
-            'info': 'dashicons-info'
-        }[type] || 'dashicons-info';
-        
-        toast.innerHTML = `
-            <span class="dashicons ${icon}"></span>
-            <span>${escapeHtml(message)}</span>
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+            max-width: 350px;
+            word-wrap: break-word;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
         `;
         
-        const finalContainer = document.getElementById('toast-container');
-        finalContainer.appendChild(toast);
+        if (type === 'success') {
+            toast.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        } else if (type === 'error') {
+            toast.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        } else {
+            toast.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+        }
+        
+        document.body.appendChild(toast);
         
         setTimeout(() => {
-            toast.remove();
-        }, 5000);
+            if (toast && toast.parentNode) {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => {
+                    if (toast && toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }
+        }, duration);
     }
 });
 </script>
-
-<!-- Aggiungi stili CSS mancanti per il toast -->
-<style>
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast {
-    min-width: 300px;
-    padding: 15px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease-out;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.toast-success {
-    background: #28a745;
-}
-
-.toast-error {
-    background: #dc3545;
-}
-
-.toast-info {
-    background: #17a2b8;
-}
-
-.toast-warning {
-    background: #ffc107;
-    color: #333;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Fix per upload area drag over */
-.upload-area.drag-over {
-    border-color: #0073aa;
-    background: rgba(0,115,170,0.05);
-}
-
-/* Stili per file selezionati */
-.selected-file {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    margin-bottom: 8px;
-}
-
-.file-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.remove-file {
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 12px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.remove-file:hover {
-    background: #c82333;
-}
-</style>

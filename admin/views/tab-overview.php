@@ -1,6 +1,6 @@
 <?php
 /**
- * Tab Panoramica - Dashboard Admin
+ * Tab Panoramica - Dashboard Admin (SENZA gestione File)
  */
 
 if (!defined('ABSPATH')) {
@@ -91,7 +91,7 @@ $dropbox_configured = $dropbox->is_configured();
             </div>
         </div>
 
-        <!-- Azioni Rapide -->
+        <!-- Azioni Rapide (RIMOSSO: gestione file) -->
         <div class="overview-section">
             <h3>Azioni Rapide</h3>
             
@@ -109,6 +109,11 @@ $dropbox_configured = $dropbox->is_configured();
                 <a href="?page=naval-egt&tab=users&action=export" class="quick-action-btn warning">
                     <span class="dashicons dashicons-download" style="margin-right: 8px;"></span>
                     Esporta Utenti
+                </a>
+                
+                <a href="?page=naval-egt&tab=logs" class="quick-action-btn info">
+                    <span class="dashicons dashicons-list-view" style="margin-right: 8px;"></span>
+                    Visualizza Log
                 </a>
             </div>
 
@@ -268,11 +273,144 @@ function syncAllFolders() {
     overflow-y: auto;
 }
 
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.2s;
+}
+
+.activity-item:hover {
+    background-color: #f0f0f0;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+}
+
+.activity-icon.upload,
+.activity-icon.admin_upload {
+    background: #28a745;
+}
+
+.activity-icon.download {
+    background: #17a2b8;
+}
+
+.activity-icon.registration {
+    background: #6f42c1;
+}
+
+.activity-icon.login {
+    background: #007bff;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+}
+
+.activity-meta {
+    font-size: 12px;
+    color: #666;
+}
+
 .quick-actions {
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
     margin-bottom: 20px;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    background: white;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.quick-action-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.quick-action-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+.quick-action-btn.primary:hover {
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.quick-action-btn.success {
+    background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+    color: white;
+    border-color: #56ab2f;
+}
+
+.quick-action-btn.success:hover {
+    color: white;
+    box-shadow: 0 4px 12px rgba(86, 171, 47, 0.3);
+}
+
+.quick-action-btn.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border-color: #f093fb;
+}
+
+.quick-action-btn.warning:hover {
+    color: white;
+    box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+}
+
+.quick-action-btn.info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border-color: #4facfe;
+}
+
+.quick-action-btn.info:hover {
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+}
+
+.dropbox-config {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
 }
 
 .dropbox-help {
@@ -304,5 +442,47 @@ function syncAllFolders() {
     display: block;
     margin: 15px 0;
     padding: 12px;
+}
+
+.form-table {
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.form-table th,
+.form-table td {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.form-table th {
+    background: #f8f9fa;
+    width: 150px;
+    font-weight: 600;
+}
+
+/* Responsive per overview */
+@media (max-width: 768px) {
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .activity-item {
+        padding: 8px;
+    }
+    
+    .activity-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+    
+    .dropbox-help code {
+        word-break: break-all;
+        display: block;
+        padding: 8px;
+        margin: 5px 0;
+    }
 }
 </style>
